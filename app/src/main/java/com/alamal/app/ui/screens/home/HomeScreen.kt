@@ -1,7 +1,7 @@
 package com.alamal.app.ui.screens.home
 
 import android.content.Intent
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -41,15 +42,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alamal.app.data.db.entity.WorkDayEntity
 import com.alamal.app.ui.components.AlamalCard
 import com.alamal.app.ui.components.AlamalDivider
-import com.alamal.app.ui.components.AlamalStatRow
 import com.alamal.app.ui.components.SummaryShareDialog
 import com.alamal.app.ui.theme.LocalExtendedColors
 import com.alamal.app.util.ArabicPlural
@@ -57,6 +59,7 @@ import com.alamal.app.util.DateFormatters
 import com.alamal.app.util.MoneyFormat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 @Composable
 fun HomeScreen(
@@ -79,14 +82,28 @@ fun HomeScreen(
             .padding(horizontal = 16.dp, vertical = 20.dp)
             .navigationBarsPadding()
             .padding(bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = "الفترة الحالية",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
+        // Header
+        Column {
+            Text(
+                text = "الفترة الحالية",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Medium,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "ملخّص أرباحك منذ آخر دفعة",
+                style = MaterialTheme.typography.bodySmall,
+                color = LocalExtendedColors.current.muted,
+            )
+        }
+
+        Spacer(Modifier.height(2.dp))
+
         NetCard(net = state.netBalance, currency = state.currency)
+
         SummaryCard(
             totalMinutes = state.totalMinutes,
             totalWages = state.totalWages,
@@ -104,30 +121,50 @@ fun HomeScreen(
             ClockInCard(onClockIn = { vm.clockIn() })
         }
 
+        // Quick actions row
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            SecondaryAction(
-                text = "عمل عن بُعد",
-                icon = Icons.Default.Laptop,
-                modifier = Modifier.weight(1f),
+            FilledTonalButton(
                 onClick = onOpenRemoteWorkForm,
-            )
-            SecondaryAction(
-                text = "كريدي",
-                icon = Icons.Default.MoneyOff,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Icon(
+                    Icons.Default.Laptop,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("عمل عن بُعد")
+            }
+            FilledTonalButton(
                 onClick = onOpenCreditForm,
-            )
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Icon(
+                    Icons.Default.MoneyOff,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("كريدي")
+            }
         }
 
+        // Secondary actions
         SecondaryAction(
             text = "إضافة يوم عمل يدويًا",
             onClick = { onOpenWorkDayForm(-1L) },
         )
         SecondaryAction(
-            text = "مشاركة ملخص الفترة الحالية",
+            text = "مشاركة الملخص",
             icon = Icons.Default.Share,
             onClick = { showShareDialog = true },
         )
@@ -136,6 +173,8 @@ fun HomeScreen(
             icon = Icons.Default.Insights,
             onClick = onOpenStats,
         )
+
+        Spacer(Modifier.height(4.dp))
 
         Button(
             onClick = onOpenPayment,
@@ -177,43 +216,57 @@ fun HomeScreen(
     }
 }
 
+// ============================================================
+// Net Card — Ivory background, big accent number
+// ============================================================
+
 @Composable
 private fun NetCard(net: Double, currency: String) {
     val accent = LocalExtendedColors.current.accent
-    val accentOn = LocalExtendedColors.current.accentOn
+    val border = LocalExtendedColors.current.border
+    val muted = LocalExtendedColors.current.muted
     val isNegative = net < -0.0001
-    val bg = if (isNegative) MaterialTheme.colorScheme.errorContainer else accent
-    val fg = if (isNegative) MaterialTheme.colorScheme.error else accentOn
-    val labelColor = if (isNegative)
-        MaterialTheme.colorScheme.error.copy(alpha = 0.75f)
-    else accentOn.copy(alpha = 0.85f)
 
-    Box(
+    val numberColor = if (isNegative) MaterialTheme.colorScheme.error else accent
+    val borderColor = if (isNegative)
+        MaterialTheme.colorScheme.error.copy(alpha = 0.30f)
+    else accent.copy(alpha = 0.25f)
+
+    val shape = RoundedCornerShape(20.dp)
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(bg)
-            .padding(horizontal = 24.dp, vertical = 28.dp),
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(1.dp, borderColor, shape)
+            .padding(horizontal = 24.dp, vertical = 26.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "الصافي الحالي",
-                style = MaterialTheme.typography.labelLarge,
-                color = labelColor,
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = MoneyFormat.formatSigned(net, currency),
-                style = MaterialTheme.typography.displaySmall,
-                color = fg,
-                fontWeight = FontWeight.Medium,
-            )
-        }
+        Text(
+            text = "الصافي الحالي",
+            style = MaterialTheme.typography.labelLarge,
+            color = muted,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = MoneyFormat.formatSigned(net, currency),
+            style = MaterialTheme.typography.displaySmall,
+            color = numberColor,
+            fontWeight = FontWeight.Medium,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = if (isNegative) "الرصيد سالب" else "الرصيد موجب",
+            style = MaterialTheme.typography.bodySmall,
+            color = muted,
+        )
     }
 }
+
+// ============================================================
+// Summary Card — 2-column grid with label above value
+// ============================================================
 
 @Composable
 private fun SummaryCard(
@@ -225,37 +278,121 @@ private fun SummaryCard(
     currency: String,
     workDaysCount: Int,
 ) {
+    val success = LocalExtendedColors.current.success
+
     AlamalCard {
         Text(
             text = "ملخّص الفترة",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
         )
         AlamalDivider()
-        AlamalStatRow("الساعات", ArabicPlural.hoursMinutes(totalMinutes))
-        AlamalStatRow("عدد الأيام", ArabicPlural.days(workDaysCount.toLong()))
-        AlamalStatRow("أجور الساعات", MoneyFormat.format(totalWages, currency))
-        if (totalRemote > 0.0001) {
-            AlamalStatRow("منها عن بُعد", MoneyFormat.format(totalRemote, currency))
-        }
-        if (totalCredits > 0.0001) {
-            AlamalStatRow(
-                label = "الكريدي",
-                value = "- " + MoneyFormat.format(totalCredits, currency),
-                valueColor = MaterialTheme.colorScheme.error,
+        Spacer(Modifier.height(4.dp))
+
+        // Row 1: hours + days
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            StatCell(
+                label = "الساعات",
+                value = ArabicPlural.hoursMinutes(totalMinutes),
+                modifier = Modifier.weight(1f),
+            )
+            StatCell(
+                label = "عدد الأيام",
+                value = ArabicPlural.days(workDaysCount.toLong()),
+                modifier = Modifier.weight(1f),
             )
         }
-        if (kotlin.math.abs(carried) > 0.0001) {
-            AlamalStatRow(
-                label = "الرصيد المرحَّل",
-                value = MoneyFormat.formatSigned(carried, currency),
-                valueColor = if (carried < 0)
-                    MaterialTheme.colorScheme.error
-                else LocalExtendedColors.current.success,
+
+        // Row 2: wages + remote
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            StatCell(
+                label = "أجور الساعات",
+                value = MoneyFormat.format(totalWages, currency),
+                modifier = Modifier.weight(1f),
             )
+            if (totalRemote > 0.0001) {
+                StatCell(
+                    label = "منها عن بُعد",
+                    value = MoneyFormat.format(totalRemote, currency),
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
+        }
+
+        // Row 3: credits + carried
+        if (totalCredits > 0.0001 || abs(carried) > 0.0001) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (totalCredits > 0.0001) {
+                    StatCell(
+                        label = "الكريدي",
+                        value = "- " + MoneyFormat.format(totalCredits, currency),
+                        valueColor = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+                if (abs(carried) > 0.0001) {
+                    StatCell(
+                        label = "الرصيد المرحَّل",
+                        value = MoneyFormat.formatSigned(carried, currency),
+                        valueColor = if (carried < 0)
+                            MaterialTheme.colorScheme.error
+                        else success,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+            }
         }
     }
 }
+
+@Composable
+private fun StatCell(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color = Color.Unspecified,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = LocalExtendedColors.current.muted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            color = if (valueColor == Color.Unspecified)
+                MaterialTheme.colorScheme.onSurface
+            else valueColor,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+// ============================================================
+// Clock-in card (not at work)
+// ============================================================
 
 @Composable
 private fun ClockInCard(onClockIn: () -> Unit) {
@@ -264,13 +401,14 @@ private fun ClockInCard(onClockIn: () -> Unit) {
             text = "لست في العمل الآن",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
         )
         Text(
             text = "اضغط الزر عند بدء العمل ليُسجَّل الوقت تلقائيًا.",
             style = MaterialTheme.typography.bodySmall,
             color = LocalExtendedColors.current.muted,
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(4.dp))
         Button(
             onClick = onClockIn,
             modifier = Modifier
@@ -289,6 +427,10 @@ private fun ClockInCard(onClockIn: () -> Unit) {
     }
 }
 
+// ============================================================
+// At-work card
+// ============================================================
+
 @Composable
 private fun AtWorkCard(day: WorkDayEntity, onClockOut: () -> Unit) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -299,6 +441,7 @@ private fun AtWorkCard(day: WorkDayEntity, onClockOut: () -> Unit) {
         }
     }
     val elapsedMin = ((now - day.clockIn).coerceAtLeast(0L)) / 60_000L
+    val success = LocalExtendedColors.current.success
 
     AlamalCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -306,13 +449,14 @@ private fun AtWorkCard(day: WorkDayEntity, onClockOut: () -> Unit) {
                 modifier = Modifier
                     .size(10.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(LocalExtendedColors.current.success),
+                    .background(success),
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = "أنت الآن في العمل",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
             )
         }
         Text(
@@ -324,8 +468,9 @@ private fun AtWorkCard(day: WorkDayEntity, onClockOut: () -> Unit) {
             text = "منذ ${ArabicPlural.hoursMinutes(elapsedMin)}",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(4.dp))
         Button(
             onClick = onClockOut,
             modifier = Modifier
@@ -337,6 +482,10 @@ private fun AtWorkCard(day: WorkDayEntity, onClockOut: () -> Unit) {
         }
     }
 }
+
+// ============================================================
+// Secondary action button
+// ============================================================
 
 @Composable
 private fun SecondaryAction(
