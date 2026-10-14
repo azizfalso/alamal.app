@@ -27,9 +27,13 @@ class AlamalApp : Application() {
     @Volatile
     private var pendingLockJob: Job? = null
 
-    /** Count of currently started activities (Activities + 1). */
+    /** Number of currently started activities. */
     @Volatile
     private var startedActivities = 0
+
+    /** Wall-clock time when the app went to background (0 = foreground). */
+    @Volatile
+    private var backgroundedAtMs = 0L
 
     @OptIn(FlowPreview::class)
     override fun onCreate() {
@@ -55,20 +59,45 @@ class AlamalApp : Application() {
             }
         }
 
-        // ---- App-level foreground/background observer ----
-        // Use ActivityLifecycleCallbacks — no extra dependency needed.
+        // ---- Foreground / background tracking ----
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityStarted(activity: Activity) {
                 startedActivities++
-                // App is back in foreground → cancel pending lock.
-                pendingLockJob?.cancel()
-                pendingLockJob = null
+                if (startedActivities == 1) {
+                    // We just came back to foreground.
+                    val elapsed = if (backgroundedAtMs > 0L) {
+                        System.currentTimeMillis() - backgroundedAtMs
+                    } else {
+                        0L
+                    }
+                    backgroundedAtMs = 0L
+                    // Always cancel the pending lock (it will be rescheduled if needed).
+                    pendingLockJob?.cancel()
+                    pendingLockJob = null
+                    // If we were away longer than the threshold, lock immediately.
+                    if (elapsed > BACKGROUND_LOCK_DELAY_MS && AppLockController.isEnabled()) {
+                        AppLockController.lock()
+                    }
+                }
             }
 
             override fun onActivityStopped(activity: Activity) {
                 startedActivities--
                 if (startedActivities <= 0) {
-                    scheduleLockOnBackground()
+                    startedActivities = 0
+                    // We just went to background.
+                    if (AppLockController.isEnabled()) {
+                        backgroundedAtMs = System.currentTimeMillis()
+                        // Also schedule a redundant timer as a safety net.
+                        pendingLockJob?.cancel()
+                        pendingLockJob = appScope.launch {
+                            delay(BACKGROUND_LOCK_DELAY_MS)
+                            // Only lock if still in background.
+                            if (backgroundedAtMs > 0L) {
+                                AppLockController.lock()
+                            }
+                        }
+                    }
                 }
             }
 
@@ -84,15 +113,6 @@ class AlamalApp : Application() {
             startService(Intent(this, AppLockService::class.java))
         } catch (_: Throwable) {
             // Non-fatal — lock still works via ActivityLifecycleCallbacks.
-        }
-    }
-
-    private fun scheduleLockOnBackground() {
-        if (!AppLockController.isEnabled()) return
-        pendingLockJob?.cancel()
-        pendingLockJob = appScope.launch {
-            delay(BACKGROUND_LOCK_DELAY_MS)
-            AppLockController.lock()
         }
     }
 

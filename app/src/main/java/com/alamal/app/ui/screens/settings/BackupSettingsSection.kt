@@ -43,7 +43,9 @@ import com.alamal.app.data.prefs.SettingsRepository
 import com.alamal.app.ui.components.AlamalCard
 import com.alamal.app.ui.components.AlamalDivider
 import com.alamal.app.ui.theme.LocalExtendedColors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun BackupSettingsSection() {
@@ -82,21 +84,26 @@ fun BackupSettingsSection() {
         busy = true
         scope.launch {
             try {
-                val payload = manager.buildPayload()
-                val treeUri = settings.backupTreeUri
-                    .takeIf { it.isNotEmpty() }
-                    ?.let { runCatching { Uri.parse(it) }.getOrNull() }
-                when (val res = manager.writeBackup(
-                    payload = payload,
-                    manual = manual,
-                    encrypted = settings.backupEncrypted,
-                    password = BackupPasswordHolder.get(),
-                    safTreeUri = treeUri,
-                )) {
-                    is BackupManager.WriteResult.Success ->
-                        toast("تم حفظ النسخة: ${res.displayName} (${res.sizeBytes / 1024} ك.ب)")
-                    is BackupManager.WriteResult.Failure -> toast(res.message)
+                val result = withContext(Dispatchers.IO) {
+                    val payload = manager.buildPayload()
+                    val treeUri = settings.backupTreeUri
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { runCatching { Uri.parse(it) }.getOrNull() }
+                    manager.writeBackup(
+                        payload = payload,
+                        manual = manual,
+                        encrypted = settings.backupEncrypted,
+                        password = BackupPasswordHolder.get(),
+                        safTreeUri = treeUri,
+                    )
                 }
+                when (result) {
+                    is BackupManager.WriteResult.Success ->
+                        toast("تم حفظ النسخة: ${result.displayName} (${result.sizeBytes / 1024} ك.ب)")
+                    is BackupManager.WriteResult.Failure -> toast(result.message)
+                }
+            } catch (t: Throwable) {
+                toast("خطأ: ${t.message}")
             } finally {
                 busy = false
             }
@@ -107,17 +114,41 @@ fun BackupSettingsSection() {
         busy = true
         scope.launch {
             try {
-                when (val res = manager.readBackup(uri, password)) {
+                val result = withContext(Dispatchers.IO) {
+                    manager.readBackup(uri, password)
+                }
+                when (result) {
                     is BackupManager.RestoreResult.Success -> {
                         pendingRestoreUri = uri
-                        pendingRestorePayload = res.payload
+                        pendingRestorePayload = result.payload
                         showRestoreConfirm = true
                     }
                     is BackupManager.RestoreResult.Failure -> {
-                        toast(res.message)
+                        toast(result.message)
                         showPasswordForRestore = false
                     }
                 }
+            } catch (t: Throwable) {
+                toast("خطأ: ${t.message}")
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun performRestore(payload: BackupPayload) {
+        busy = true
+        scope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    manager.restoreIntoDatabase(payload)
+                }
+                when (result) {
+                    is BackupManager.RestoreResult.Success -> toast("تمت الاستعادة بنجاح.")
+                    is BackupManager.RestoreResult.Failure -> toast(result.message)
+                }
+            } catch (t: Throwable) {
+                toast("خطأ: ${t.message}")
             } finally {
                 busy = false
             }
@@ -288,12 +319,16 @@ fun BackupSettingsSection() {
         ) {
             OutlinedButton(
                 onClick = {
-                    val treeUri = settings.backupTreeUri
-                        .takeIf { it.isNotEmpty() }
-                        ?.let { runCatching { Uri.parse(it) }.getOrNull() }
-                    val uri = manager.findAutoBackup(treeUri)
-                    if (uri == null) toast("لا توجد نسخة تلقائية بعد.")
-                    else startRestoreFlow(uri)
+                    scope.launch {
+                        val treeUri = settings.backupTreeUri
+                            .takeIf { it.isNotEmpty() }
+                            ?.let { runCatching { Uri.parse(it) }.getOrNull() }
+                        val uri = withContext(Dispatchers.IO) {
+                            manager.findAutoBackup(treeUri)
+                        }
+                        if (uri == null) toast("لا توجد نسخة تلقائية بعد.")
+                        else startRestoreFlow(uri)
+                    }
                 },
                 enabled = !busy,
                 modifier = Modifier
@@ -380,19 +415,7 @@ fun BackupSettingsSection() {
                         val payload = pendingRestorePayload
                         pendingRestorePayload = null
                         pendingRestoreUri = null
-                        if (payload != null) {
-                            busy = true
-                            scope.launch {
-                                try {
-                                    when (val r = manager.restoreIntoDatabase(payload)) {
-                                        is BackupManager.RestoreResult.Success -> toast("تمت الاستعادة بنجاح.")
-                                        is BackupManager.RestoreResult.Failure -> toast(r.message)
-                                    }
-                                } finally {
-                                    busy = false
-                                }
-                            }
-                        }
+                        if (payload != null) performRestore(payload)
                     },
                 ) { Text("استعادة واستبدال") }
             },
