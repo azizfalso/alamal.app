@@ -1,6 +1,7 @@
 package com.alamal.app.ui.screens.home
 
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -216,10 +217,6 @@ fun HomeScreen(
     }
 }
 
-// ============================================================
-// Net Card — Ivory background, big accent number
-// ============================================================
-
 @Composable
 private fun NetCard(net: Double, currency: String) {
     val accent = LocalExtendedColors.current.accent
@@ -264,10 +261,6 @@ private fun NetCard(net: Double, currency: String) {
     }
 }
 
-// ============================================================
-// Summary Card — 2-column grid with label above value
-// ============================================================
-
 @Composable
 private fun SummaryCard(
     totalMinutes: Long,
@@ -290,7 +283,6 @@ private fun SummaryCard(
         AlamalDivider()
         Spacer(Modifier.height(4.dp))
 
-        // Row 1: hours + days
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -307,7 +299,6 @@ private fun SummaryCard(
             )
         }
 
-        // Row 2: wages + remote
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -328,7 +319,6 @@ private fun SummaryCard(
             }
         }
 
-        // Row 3: credits + carried
         if (totalCredits > 0.0001 || abs(carried) > 0.0001) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -390,10 +380,6 @@ private fun StatCell(
     }
 }
 
-// ============================================================
-// Clock-in card (not at work)
-// ============================================================
-
 @Composable
 private fun ClockInCard(onClockIn: () -> Unit) {
     AlamalCard {
@@ -426,10 +412,6 @@ private fun ClockInCard(onClockIn: () -> Unit) {
         }
     }
 }
-
-// ============================================================
-// At-work card
-// ============================================================
 
 @Composable
 private fun AtWorkCard(day: WorkDayEntity, onClockOut: () -> Unit) {
@@ -482,10 +464,6 @@ private fun AtWorkCard(day: WorkDayEntity, onClockOut: () -> Unit) {
         }
     }
 }
-
-// ============================================================
-// Secondary action button
-// ============================================================
 
 @Composable
 private fun SecondaryAction(
