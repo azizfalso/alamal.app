@@ -17,6 +17,9 @@ interface CreditDao {
     @Query("SELECT * FROM credits ORDER BY date DESC")
     fun observeAll(): Flow<List<CreditEntity>>
 
+    @Query("SELECT * FROM credits WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): CreditEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: CreditEntity): Long
 

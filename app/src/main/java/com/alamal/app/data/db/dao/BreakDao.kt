@@ -13,6 +13,15 @@ interface BreakDao {
     @Query("SELECT * FROM breaks WHERE workDayId = :workDayId ORDER BY startTime ASC")
     fun observeForDay(workDayId: Long): Flow<List<BreakEntity>>
 
+    @Query("SELECT * FROM breaks WHERE workDayId IN (SELECT id FROM work_days WHERE periodId IS NULL)")
+    fun observeForCurrentPeriod(): Flow<List<BreakEntity>>
+
+    @Query("SELECT * FROM breaks WHERE workDayId = :workDayId ORDER BY startTime ASC")
+    suspend fun getForDay(workDayId: Long): List<BreakEntity>
+
+    @Query("DELETE FROM breaks WHERE workDayId = :workDayId")
+    suspend fun deleteForDay(workDayId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: BreakEntity): Long
 

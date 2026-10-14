@@ -17,6 +17,9 @@ interface RemoteWorkDao {
     @Query("SELECT * FROM remote_works ORDER BY date DESC")
     fun observeAll(): Flow<List<RemoteWorkEntity>>
 
+    @Query("SELECT * FROM remote_works WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): RemoteWorkEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: RemoteWorkEntity): Long
 
