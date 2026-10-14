@@ -13,8 +13,17 @@ interface PeriodDao {
     @Query("SELECT * FROM periods ORDER BY archivedAt DESC")
     fun observeAll(): Flow<List<PeriodEntity>>
 
+    @Query("SELECT * FROM periods ORDER BY archivedAt DESC")
+    suspend fun getAll(): List<PeriodEntity>
+
     @Query("SELECT * FROM periods ORDER BY archivedAt DESC LIMIT 1")
     suspend fun getLast(): PeriodEntity?
+
+    @Query("SELECT * FROM periods WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): PeriodEntity?
+
+    @Query("SELECT COUNT(*) FROM periods")
+    suspend fun count(): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: PeriodEntity): Long

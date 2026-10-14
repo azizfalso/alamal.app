@@ -14,6 +14,13 @@ val keystoreProperties = Properties().apply {
     if (hasKeystore) keystorePropertiesFile.inputStream().use { load(it) }
 }
 
+// ---- Version ----
+// versionCodeOverride is passed by GitHub Actions as -PversionCodeOverride=<run_number>
+// Local builds fall back to 1.
+val versionCodeOverride: Int =
+    (project.findProperty("versionCodeOverride") as String?)?.toIntOrNull() ?: 1
+val versionNameOverride: String = "1.0.$versionCodeOverride"
+
 android {
     namespace = "com.alamal.app"
     compileSdk = 35
@@ -22,8 +29,8 @@ android {
         applicationId = "com.alamal.app"
         minSdk = 32
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = versionCodeOverride
+        versionName = versionNameOverride
 
         resourceConfigurations += listOf("ar", "en")
 

@@ -1,9 +1,14 @@
 name: Build Release APK
 
 on:
-  push:
-    branches: [ main, master ]
+  # Manual trigger only — no auto builds on push.
   workflow_dispatch:
+    inputs:
+      build_note:
+        description: 'ملاحظة اختيارية لهذا البناء (تظهر في سجل التشغيل)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -14,6 +19,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Show build info
+        run: |
+          echo "Build note: ${{ github.event.inputs.build_note }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Run number:   ${{ github.run_number }}"
+          echo "Version name will be: 1.0.${{ github.run_number }}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -65,12 +77,19 @@ jobs:
           echo "keyPassword=$KEY_PASSWORD_V"       >> app/keystore.properties
 
       - name: Build release APK
-        run: gradle :app:assembleRelease --no-daemon --stacktrace
+        run: |
+          gradle :app:assembleRelease \
+            -PversionCodeOverride=${{ github.run_number }} \
+            --no-daemon --stacktrace
+
+      - name: Show APK info
+        run: |
+          ls -lh app/build/outputs/apk/release/ || true
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: alamal-release
+          name: alamal-release-v1.0.${{ github.run_number }}
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 30

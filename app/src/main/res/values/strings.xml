@@ -57,7 +57,7 @@
 
     <string name="settings_section_about">حول</string>
     <string name="settings_version">الإصدار</string>
-    <string name="settings_part1_note">هذه نسخة أولية (الجزء الأول). الوظائف المالية والأرشيف والنسخ الاحتياطي ستُضاف في المرحلة القادمة.</string>
+    <string name="settings_part1_note">نسخة قيد التطوير. الوظائف المالية الأساسية والدُفعات مُفعَّلة، والأرشيف والنسخ الاحتياطي في المرحلة القادمة.</string>
 
     <string name="placeholder_title">قريبًا</string>
     <string name="placeholder_body">هذا القسم قيد الإنشاء وسيُضاف في المرحلة القادمة.</string>

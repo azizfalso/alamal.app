@@ -3,24 +3,12 @@ package com.alamal.app.domain
 import com.alamal.app.data.db.entity.BreakEntity
 import com.alamal.app.data.db.entity.WorkDayEntity
 
-/**
- * Result of computing a single work day's statistics.
- * All time values are in MINUTES (not milliseconds).
- */
 data class DayStats(
     val actualMinutes: Long,
     val breakMinutes: Long,
     val wage: Double,
 )
 
-/**
- * Pure calculation engine. No Android dependencies — easy to unit-test.
- *
- * Rules:
- *  - actual time = (clockOut or now) − clockIn − sum(breaks)
- *  - wage = (actualMinutes / 60) × hourlyRate
- *  - negative values are clamped to zero (bad input protection)
- */
 object MoneyCalculator {
 
     fun computeDayStats(
@@ -49,10 +37,6 @@ object MoneyCalculator {
         )
     }
 
-    /**
-     * Net balance for a period:
-     *   carriedBalance + totalWages + totalRemote − totalCredits
-     */
     fun computeNet(
         carriedBalance: Double,
         totalWages: Double,

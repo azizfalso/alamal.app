@@ -20,8 +20,20 @@ interface WorkDayDao {
     @Query("SELECT * FROM work_days WHERE periodId IS NULL AND clockOut IS NULL ORDER BY clockIn DESC LIMIT 1")
     suspend fun getOpen(): WorkDayEntity?
 
+    @Query("SELECT * FROM work_days WHERE periodId IS NULL ORDER BY clockIn ASC")
+    suspend fun getCurrent(): List<WorkDayEntity>
+
+    @Query("SELECT * FROM work_days WHERE periodId = :periodId ORDER BY clockIn ASC")
+    suspend fun getByPeriod(periodId: Long): List<WorkDayEntity>
+
     @Query("SELECT * FROM work_days WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): WorkDayEntity?
+
+    @Query("UPDATE work_days SET periodId = :periodId WHERE periodId IS NULL")
+    suspend fun assignCurrentToPeriod(periodId: Long)
+
+    @Query("UPDATE work_days SET periodId = NULL WHERE periodId = :periodId")
+    suspend fun releaseFromPeriod(periodId: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(day: WorkDayEntity): Long

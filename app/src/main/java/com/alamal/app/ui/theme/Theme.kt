@@ -71,9 +71,6 @@ fun AlamalTheme(
     )
 }
 
-/**
- * Parses "#RRGGBB" or "#AARRGGBB". Falls back to a blue if invalid.
- */
 fun parseHexColor(hex: String, fallback: Color = SeedBlue): Color {
     val cleaned = hex.trim().removePrefix("#")
     return try {

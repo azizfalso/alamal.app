@@ -3,7 +3,6 @@ package com.alamal.app.data.db.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-/** An archived period — created when a payment is received. */
 @Entity(tableName = "periods")
 data class PeriodEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,

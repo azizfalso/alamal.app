@@ -35,6 +35,7 @@ import androidx.navigation.navArgument
 import com.alamal.app.R
 import com.alamal.app.ui.screens.credit.CreditFormScreen
 import com.alamal.app.ui.screens.home.HomeScreen
+import com.alamal.app.ui.screens.payment.PaymentScreen
 import com.alamal.app.ui.screens.placeholder.PlaceholderScreen
 import com.alamal.app.ui.screens.remote.RemoteWorkFormScreen
 import com.alamal.app.ui.screens.settings.SettingsScreen
@@ -122,6 +123,9 @@ fun AppNavigation() {
                     onOpenCreditForm = {
                         navController.navigate(Routes.creditForm(-1L))
                     },
+                    onOpenPayment = {
+                        navController.navigate(Routes.PAYMENT)
+                    },
                 )
             }
             composable(Routes.RECORDS) {
@@ -131,6 +135,10 @@ fun AppNavigation() {
                 PlaceholderScreen(title = stringResource(R.string.nav_archive))
             }
             composable(Routes.SETTINGS) { SettingsScreen() }
+
+            composable(Routes.PAYMENT) {
+                PaymentScreen(onDone = { navController.popBackStack() })
+            }
 
             composable(
                 route = Routes.workDayFormPattern(),

@@ -17,8 +17,20 @@ interface RemoteWorkDao {
     @Query("SELECT * FROM remote_works ORDER BY date DESC")
     fun observeAll(): Flow<List<RemoteWorkEntity>>
 
+    @Query("SELECT * FROM remote_works WHERE periodId IS NULL ORDER BY date ASC")
+    suspend fun getCurrent(): List<RemoteWorkEntity>
+
+    @Query("SELECT * FROM remote_works WHERE periodId = :periodId ORDER BY date ASC")
+    suspend fun getByPeriod(periodId: Long): List<RemoteWorkEntity>
+
     @Query("SELECT * FROM remote_works WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): RemoteWorkEntity?
+
+    @Query("UPDATE remote_works SET periodId = :periodId WHERE periodId IS NULL")
+    suspend fun assignCurrentToPeriod(periodId: Long)
+
+    @Query("UPDATE remote_works SET periodId = NULL WHERE periodId = :periodId")
+    suspend fun releaseFromPeriod(periodId: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: RemoteWorkEntity): Long

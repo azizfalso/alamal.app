@@ -29,9 +29,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var settingsRepo: SettingsRepository
 
-    /** null = not yet determined, true = locked, false = unlocked */
     private val isLocked = mutableStateOf<Boolean?>(null)
-
     private var backgroundedAt = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {

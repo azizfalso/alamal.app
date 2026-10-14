@@ -1,7 +1,6 @@
 package com.alamal.app.ui.screens.home
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Laptop
 import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.Schedule
@@ -52,6 +52,7 @@ fun HomeScreen(
     onOpenWorkDayForm: (Long) -> Unit,
     onOpenRemoteWorkForm: () -> Unit,
     onOpenCreditForm: () -> Unit,
+    onOpenPayment: () -> Unit,
 ) {
     val context = LocalContext.current
     val vm: HomeViewModel = viewModel(factory = HomeViewModel.factory(context))
@@ -89,7 +90,6 @@ fun HomeScreen(
         if (open != null) {
             AtWorkCard(
                 day = open,
-                currency = state.currency,
                 onClockOut = { onOpenWorkDayForm(open.id) },
             )
         } else {
@@ -124,6 +124,19 @@ fun HomeScreen(
         ) {
             Text("إضافة يوم عمل يدويًا")
         }
+
+        Button(
+            onClick = onOpenPayment,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+        ) {
+            Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("استلمت الدفعة", fontWeight = FontWeight.SemiBold)
+        }
+
+        Spacer(Modifier.height(4.dp))
     }
 }
 
@@ -258,7 +271,6 @@ private fun ClockInCard(onClockIn: () -> Unit) {
 @Composable
 private fun AtWorkCard(
     day: WorkDayEntity,
-    currency: String,
     onClockOut: () -> Unit,
 ) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -281,18 +293,11 @@ private fun AtWorkCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .then(Modifier),
-                )
-                Text(
-                    text = "أنت الآن في العمل",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            Text(
+                text = "أنت الآن في العمل",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
             Text(
                 text = "بدأت في ${DateFormatters.time(day.clockIn)}",
                 style = MaterialTheme.typography.bodyMedium,

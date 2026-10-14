@@ -47,7 +47,6 @@ fun LockScreen(
     var error by remember { mutableStateOf(false) }
     val shakeOffset = remember { Animatable(0f) }
 
-    // Shake on error, then clear input.
     LaunchedEffect(error) {
         if (error) {
             repeat(3) {
@@ -60,7 +59,6 @@ fun LockScreen(
         }
     }
 
-    // Check PIN as soon as 4 digits are entered.
     LaunchedEffect(input) {
         if (input.length == 4) {
             if (input == expectedPin) {
@@ -95,7 +93,6 @@ fun LockScreen(
 
         Spacer(Modifier.height(40.dp))
 
-        // Four dots
         Row(
             modifier = Modifier.graphicsLayer { translationX = shakeOffset.value },
             horizontalArrangement = Arrangement.spacedBy(20.dp),
@@ -127,7 +124,6 @@ fun LockScreen(
 
         Spacer(Modifier.height(32.dp))
 
-        // Keypad
         val keys = listOf(
             listOf("1", "2", "3"),
             listOf("4", "5", "6"),

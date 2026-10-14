@@ -1,14 +1,5 @@
 package com.alamal.app.util
 
-/**
- * Arabic pluralization for time units.
- * Rules:
- *  0 → "0 ساعة" / "0 دقيقة"
- *  1 → "ساعة واحدة" / "دقيقة واحدة"
- *  2 → "ساعتان" / "دقيقتان"
- *  3..10 → "N ساعات" / "N دقائق"
- *  11+ → "N ساعة" / "N دقيقة"
- */
 object ArabicPlural {
 
     fun hours(n: Long): String = when {
@@ -27,7 +18,6 @@ object ArabicPlural {
         else -> "$n دقيقة"
     }
 
-    /** "3 ساعات و 25 دقيقة" / "ساعتان" / "45 دقيقة" / "0 دقيقة" */
     fun hoursMinutes(totalMinutes: Long): String {
         val h = totalMinutes / 60L
         val m = totalMinutes % 60L
