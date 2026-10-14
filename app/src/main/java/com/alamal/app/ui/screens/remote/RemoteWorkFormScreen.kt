@@ -14,7 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -106,22 +105,10 @@ fun RemoteWorkFormScreen(
                         )
                     }
                 },
-                actions = {
-                    if (currentId > 0L) {
-                        IconButton(onClick = { showDeleteConfirm = true }) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "حذف",
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
                     navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
         },
@@ -144,14 +131,15 @@ fun RemoteWorkFormScreen(
                     Column {
                         Text(
                             text = "التاريخ",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelLarge,
                             color = LocalExtendedColors.current.muted,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = DateFormatters.dateArabic(dateMs),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium,
                         )
                     }
                     TextButton(onClick = { editingDate = true }) { Text("تغيير") }
@@ -180,8 +168,23 @@ fun RemoteWorkFormScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                if (currentId > 0L) {
+                    OutlinedButton(
+                        onClick = { showDeleteConfirm = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text(
+                            text = "حذف",
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
                 OutlinedButton(
                     onClick = onDone,
                     modifier = Modifier

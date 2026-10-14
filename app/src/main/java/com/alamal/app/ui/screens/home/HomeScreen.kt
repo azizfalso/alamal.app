@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,12 +47,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alamal.app.data.db.entity.WorkDayEntity
 import com.alamal.app.ui.components.AlamalCard
 import com.alamal.app.ui.components.AlamalDivider
+import com.alamal.app.ui.components.AlamalStatRow
 import com.alamal.app.ui.components.SummaryShareDialog
 import com.alamal.app.ui.theme.LocalExtendedColors
 import com.alamal.app.util.ArabicPlural
@@ -84,7 +83,7 @@ fun HomeScreen(
             .padding(horizontal = 16.dp, vertical = 20.dp)
             .navigationBarsPadding()
             .padding(bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Column {
             Text(
@@ -93,10 +92,10 @@ fun HomeScreen(
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Medium,
             )
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = "ملخّص أرباحك منذ آخر دفعة",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = LocalExtendedColors.current.muted,
             )
         }
@@ -134,13 +133,13 @@ fun HomeScreen(
                 onClick = onOpenRemoteWorkForm,
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp),
+                    .height(52.dp),
                 shape = RoundedCornerShape(14.dp),
             ) {
                 Icon(
                     Icons.Default.Laptop,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(6.dp))
                 Text("عمل عن بُعد")
@@ -149,13 +148,13 @@ fun HomeScreen(
                 onClick = onOpenCreditForm,
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp),
+                    .height(52.dp),
                 shape = RoundedCornerShape(14.dp),
             ) {
                 Icon(
                     Icons.Default.MoneyOff,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(6.dp))
                 Text("كريدي")
@@ -231,6 +230,8 @@ private fun NetCard(net: Double, currency: String) {
     else accent.copy(alpha = 0.25f)
 
     val shape = RoundedCornerShape(20.dp)
+    // Non-breaking space keeps number + currency on one line in RTL.
+    val formatted = MoneyFormat.formatSigned(net, currency).replace(" ", "\u00A0")
 
     Column(
         modifier = Modifier
@@ -238,25 +239,26 @@ private fun NetCard(net: Double, currency: String) {
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .border(1.dp, borderColor, shape)
-            .padding(horizontal = 24.dp, vertical = 26.dp),
+            .padding(horizontal = 24.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = "الصافي الحالي",
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.titleMedium,
             color = muted,
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
-            text = MoneyFormat.formatSigned(net, currency),
-            style = MaterialTheme.typography.displaySmall,
+            text = formatted,
+            style = MaterialTheme.typography.headlineLarge,
             color = numberColor,
             fontWeight = FontWeight.Medium,
+            maxLines = 1,
         )
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
             text = if (isNegative) "الرصيد سالب" else "الرصيد موجب",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = muted,
         )
     }
@@ -284,100 +286,41 @@ private fun SummaryCard(
         AlamalDivider()
         Spacer(Modifier.height(4.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            StatCell(
-                label = "الساعات",
-                value = ArabicPlural.hoursMinutes(totalMinutes),
-                modifier = Modifier.weight(1f),
-            )
-            StatCell(
-                label = "عدد الأيام",
-                value = ArabicPlural.days(workDaysCount.toLong()),
-                modifier = Modifier.weight(1f),
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            StatCell(
-                label = "أجور الساعات",
-                value = MoneyFormat.format(totalWages, currency),
-                modifier = Modifier.weight(1f),
-            )
-            if (totalRemote > 0.0001) {
-                StatCell(
-                    label = "منها عن بُعد",
-                    value = MoneyFormat.format(totalRemote, currency),
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                Spacer(Modifier.weight(1f))
-            }
-        }
-
-        if (totalCredits > 0.0001 || abs(carried) > 0.0001) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (totalCredits > 0.0001) {
-                    StatCell(
-                        label = "الكريدي",
-                        value = "- " + MoneyFormat.format(totalCredits, currency),
-                        valueColor = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.weight(1f),
-                    )
-                } else {
-                    Spacer(Modifier.weight(1f))
-                }
-                if (abs(carried) > 0.0001) {
-                    StatCell(
-                        label = "الرصيد المرحَّل",
-                        value = MoneyFormat.formatSigned(carried, currency),
-                        valueColor = if (carried < 0)
-                            MaterialTheme.colorScheme.error
-                        else success,
-                        modifier = Modifier.weight(1f),
-                    )
-                } else {
-                    Spacer(Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatCell(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    valueColor: Color = Color.Unspecified,
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = LocalExtendedColors.current.muted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        AlamalStatRow(
+            label = "الساعات",
+            value = ArabicPlural.hoursMinutes(totalMinutes),
         )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = if (valueColor == Color.Unspecified)
-                MaterialTheme.colorScheme.onSurface
-            else valueColor,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        AlamalStatRow(
+            label = "عدد الأيام",
+            value = ArabicPlural.days(workDaysCount.toLong()),
         )
+        AlamalStatRow(
+            label = "أجور الساعات",
+            value = MoneyFormat.format(totalWages, currency),
+        )
+        if (totalRemote > 0.0001) {
+            AlamalStatRow(
+                label = "منها عن بُعد",
+                value = MoneyFormat.format(totalRemote, currency),
+            )
+        }
+        if (totalCredits > 0.0001) {
+            AlamalStatRow(
+                label = "الكريدي",
+                value = "- " + MoneyFormat.format(totalCredits, currency),
+                valueColor = MaterialTheme.colorScheme.error,
+            )
+        }
+        if (abs(carried) > 0.0001) {
+            AlamalStatRow(
+                label = "الرصيد المرحَّل",
+                value = MoneyFormat.formatSigned(carried, currency),
+                valueColor = if (carried < 0)
+                    MaterialTheme.colorScheme.error
+                else success,
+                bold = true,
+            )
+        }
     }
 }
 
@@ -392,10 +335,10 @@ private fun ClockInCard(onClockIn: () -> Unit) {
         )
         Text(
             text = "اضغط الزر عند بدء العمل ليُسجَّل الوقت تلقائيًا.",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = LocalExtendedColors.current.muted,
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
         Button(
             onClick = onClockIn,
             modifier = Modifier
@@ -457,7 +400,7 @@ private fun AtWorkCard(
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium,
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
         Button(
             onClick = onQuickStop,
             modifier = Modifier
@@ -470,14 +413,16 @@ private fun AtWorkCard(
                 fontWeight = FontWeight.Medium,
             )
         }
-        TextButton(
+        OutlinedButton(
             onClick = onEditDetails,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
+            shape = RoundedCornerShape(12.dp),
         ) {
             Text(
-                text = "تعديل التفاصيل (استراحات، وقت...)",
-                style = MaterialTheme.typography.labelMedium,
-                color = LocalExtendedColors.current.muted,
+                text = "تعديل التفاصيل",
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }
@@ -492,17 +437,20 @@ private fun SecondaryAction(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.height(48.dp),
+        modifier = modifier.height(52.dp),
         shape = RoundedCornerShape(14.dp),
     ) {
         if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.width(8.dp))
         }
-        Text(text)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+        )
     }
 }

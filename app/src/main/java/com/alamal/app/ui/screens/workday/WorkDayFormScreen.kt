@@ -139,22 +139,10 @@ fun WorkDayFormScreen(
                         )
                     }
                 },
-                actions = {
-                    if (currentDayId > 0L) {
-                        IconButton(onClick = { showDeleteConfirm = true }) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "حذف",
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
                     navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
         },
@@ -206,7 +194,7 @@ fun WorkDayFormScreen(
                 if (breaks.isEmpty()) {
                     Text(
                         text = "لا توجد استراحات.",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = LocalExtendedColors.current.muted,
                     )
                 } else {
@@ -276,8 +264,23 @@ fun WorkDayFormScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                if (currentDayId > 0L) {
+                    OutlinedButton(
+                        onClick = { showDeleteConfirm = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text(
+                            text = "حذف",
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
                 OutlinedButton(
                     onClick = onDone,
                     modifier = Modifier
@@ -405,14 +408,15 @@ private fun DateTimeRow(
         Column {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelLarge,
                 color = LocalExtendedColors.current.muted,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = if (ms == null) "غير محدد" else DateFormatters.dateTime(ms),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
             )
         }
         TextButton(onClick = onClick) {
