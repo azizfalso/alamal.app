@@ -1,0 +1,76 @@
+name: Build Release APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build signed release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Decode keystore and write keystore.properties
+        env:
+          KS_B64_A: ${{ secrets.KEYSTORE_BASE64 }}
+          KS_B64_B: ${{ secrets.KEYSTORE }}
+          STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS_V: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD_V: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KS_B64="${KS_B64_A:-${KS_B64_B:-}}"
+          if [ -z "$KS_B64" ]; then
+            echo "::error title=Missing secret::Neither KEYSTORE_BASE64 nor KEYSTORE is set in Repository secrets."
+            exit 1
+          fi
+          if [ -z "${STORE_PASSWORD:-}" ]; then
+            echo "::error title=Missing secret::KEYSTORE_PASSWORD is not set."
+            exit 1
+          fi
+          if [ -z "${KEY_ALIAS_V:-}" ]; then
+            echo "::error title=Missing secret::KEY_ALIAS is not set."
+            exit 1
+          fi
+          if [ -z "${KEY_PASSWORD_V:-}" ]; then
+            echo "::error title=Missing secret::KEY_PASSWORD is not set."
+            exit 1
+          fi
+
+          printf '%s' "$KS_B64" | base64 -d > app/keystore.jks
+          test -s app/keystore.jks
+          echo "keystore.jks written ($(wc -c < app/keystore.jks) bytes)"
+
+          echo "storeFile=keystore.jks"            >  app/keystore.properties
+          echo "storePassword=$STORE_PASSWORD"     >> app/keystore.properties
+          echo "keyAlias=$KEY_ALIAS_V"             >> app/keystore.properties
+          echo "keyPassword=$KEY_PASSWORD_V"       >> app/keystore.properties
+
+      - name: Build release APK
+        run: gradle :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: alamal-release
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
