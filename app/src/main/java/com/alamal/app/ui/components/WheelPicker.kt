@@ -32,13 +32,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlin.math.abs
 
-/**
- * Wheel-style picker (iOS-like). Vertical scroll with snap.
- *
- * @param items list of display strings
- * @param selectedIndex current selection, 0-based on `items`
- * @param visibleItems must be odd (3 or 5 recommended)
- */
 @Composable
 fun WheelPicker(
     items: List<String>,
@@ -55,10 +48,9 @@ fun WheelPicker(
     val halfVisible = visibleItems / 2
     val itemHeightPx = with(LocalDensity.current) { itemHeight.toPx() }
 
-    // Pad with nulls on both ends so first/last real item can reach center.
     val padded: List<String?> = remember(items, halfVisible) {
         val left = List<String?>(halfVisible) { null }
-        val middle = items.map<String?> { it }
+        val middle: List<String?> = items
         val right = List<String?>(halfVisible) { null }
         left + middle + right
     }
@@ -66,21 +58,19 @@ fun WheelPicker(
     val safeIndex = selectedIndex.coerceIn(0, items.lastIndex)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = safeIndex)
 
-    // External -> list
     LaunchedEffect(safeIndex) {
         if (listState.firstVisibleItemIndex != safeIndex) {
             listState.animateScrollToItem(safeIndex)
         }
     }
 
-    // List -> external (only after scroll settles)
-    LaunchedEffect(listState, items) {
+    LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }
             .distinctUntilChanged()
             .filter { !it }
             .collect {
                 val idx = listState.firstVisibleItemIndex
-                if (idx in items.indices && idx != selectedIndex) {
+                if (idx in items.indices) {
                     onSelectedIndexChange(idx)
                 }
             }
@@ -151,7 +141,6 @@ fun WheelPicker(
             }
         }
 
-        // Selection indicator (two thin lines around the center item)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
