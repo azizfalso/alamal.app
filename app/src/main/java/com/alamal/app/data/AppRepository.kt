@@ -8,12 +8,13 @@ import com.alamal.app.data.db.entity.PeriodEntity
 import com.alamal.app.data.db.entity.RemoteWorkEntity
 import com.alamal.app.data.db.entity.WorkDayEntity
 import com.alamal.app.domain.MoneyCalculator
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 
-/**
- * Snapshot of the current (open) period, ready to be turned into a payment.
- */
 data class PeriodSnapshot(
     val startDate: Long,
     val endDate: Long,
@@ -47,6 +48,18 @@ class AppRepository private constructor(context: Context) {
 
     private val db = AppDatabase.get(context)
 
+    // ---- Change notifications (used by auto-backup coordinator) ----
+    private val _dataChanged = MutableSharedFlow<Unit>(
+        replay = 0,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val dataChanged: SharedFlow<Unit> = _dataChanged.asSharedFlow()
+
+    private fun notifyChanged() {
+        _dataChanged.tryEmit(Unit)
+    }
+
     // ---- Flows (current period) ----
     val currentWorkDays: Flow<List<WorkDayEntity>> = db.workDayDao().observeCurrent()
     val breaksForCurrentPeriod: Flow<List<BreakEntity>> = db.breakDao().observeForCurrentPeriod()
@@ -64,7 +77,7 @@ class AppRepository private constructor(context: Context) {
     suspend fun getBreaksForDay(dayId: Long): List<BreakEntity> = db.breakDao().getForDay(dayId)
 
     suspend fun clockIn(hourlyRate: Double, at: Long = System.currentTimeMillis()): Long {
-        return db.workDayDao().insert(
+        val id = db.workDayDao().insert(
             WorkDayEntity(
                 periodId = null,
                 clockIn = at,
@@ -72,6 +85,8 @@ class AppRepository private constructor(context: Context) {
                 hourlyRate = hourlyRate,
             )
         )
+        notifyChanged()
+        return id
     }
 
     suspend fun upsertWorkDay(day: WorkDayEntity, breaks: List<BreakEntity>): Long {
@@ -85,6 +100,7 @@ class AppRepository private constructor(context: Context) {
         breaks.forEach { b ->
             db.breakDao().insert(b.copy(id = 0L, workDayId = dayId))
         }
+        notifyChanged()
         return dayId
     }
 
@@ -95,12 +111,14 @@ class AppRepository private constructor(context: Context) {
         breaks.forEach { b ->
             db.breakDao().insert(b.copy(id = 0L, workDayId = dayId))
         }
+        notifyChanged()
     }
 
     suspend fun deleteWorkDay(dayId: Long) {
         db.breakDao().deleteForDay(dayId)
         val day = db.workDayDao().getById(dayId) ?: return
         db.workDayDao().delete(day)
+        notifyChanged()
     }
 
     // ---- Remote work ----
@@ -109,10 +127,12 @@ class AppRepository private constructor(context: Context) {
     suspend fun saveRemoteWork(item: RemoteWorkEntity) {
         if (item.id == 0L) db.remoteWorkDao().insert(item)
         else db.remoteWorkDao().update(item)
+        notifyChanged()
     }
 
     suspend fun deleteRemoteWork(item: RemoteWorkEntity) {
         db.remoteWorkDao().delete(item)
+        notifyChanged()
     }
 
     // ---- Credits ----
@@ -121,10 +141,12 @@ class AppRepository private constructor(context: Context) {
     suspend fun saveCredit(item: CreditEntity) {
         if (item.id == 0L) db.creditDao().insert(item)
         else db.creditDao().update(item)
+        notifyChanged()
     }
 
     suspend fun deleteCredit(item: CreditEntity) {
         db.creditDao().delete(item)
+        notifyChanged()
     }
 
     // ---- Payment ----
@@ -203,6 +225,7 @@ class AppRepository private constructor(context: Context) {
         db.remoteWorkDao().assignCurrentToPeriod(periodId)
         db.creditDao().assignCurrentToPeriod(periodId)
 
+        notifyChanged()
         return periodId
     }
 
@@ -227,6 +250,7 @@ class AppRepository private constructor(context: Context) {
             db.remoteWorkDao().getCurrent().size +
             db.creditDao().getCurrent().size
 
+        notifyChanged()
         return RollbackResult.Success(restored)
     }
 
