@@ -1,11 +1,9 @@
 package com.alamal.app
 
+import android.app.Activity
 import android.app.Application
 import android.content.Intent
-import android.os.Build
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ProcessLifecycleOwner
+import android.os.Bundle
 import com.alamal.app.data.AppRepository
 import com.alamal.app.data.backup.BackupCoordinator
 import com.alamal.app.data.prefs.AppSettings
@@ -28,6 +26,10 @@ class AlamalApp : Application() {
     /** Job that will lock the app after the background timeout. */
     @Volatile
     private var pendingLockJob: Job? = null
+
+    /** Count of currently started activities (Activities + 1). */
+    @Volatile
+    private var startedActivities = 0
 
     @OptIn(FlowPreview::class)
     override fun onCreate() {
@@ -54,36 +56,43 @@ class AlamalApp : Application() {
         }
 
         // ---- App-level foreground/background observer ----
-        ProcessLifecycleOwner.get().lifecycle.addObserver(
-            object : DefaultLifecycleObserver {
-                override fun onStart(owner: LifecycleOwner) {
-                    // App is back in foreground → cancel pending lock.
-                    pendingLockJob?.cancel()
-                    pendingLockJob = null
-                }
+        // Use ActivityLifecycleCallbacks — no extra dependency needed.
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityStarted(activity: Activity) {
+                startedActivities++
+                // App is back in foreground → cancel pending lock.
+                pendingLockJob?.cancel()
+                pendingLockJob = null
+            }
 
-                override fun onStop(owner: LifecycleOwner) {
-                    // App went to background → schedule a lock after 30s.
-                    if (!AppLockController.isEnabled()) return
-                    pendingLockJob?.cancel()
-                    pendingLockJob = appScope.launch {
-                        delay(BACKGROUND_LOCK_DELAY_MS)
-                        AppLockController.lock()
-                    }
+            override fun onActivityStopped(activity: Activity) {
+                startedActivities--
+                if (startedActivities <= 0) {
+                    scheduleLockOnBackground()
                 }
             }
-        )
+
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityResumed(activity: Activity) {}
+            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {}
+        })
 
         // ---- Best-effort: catch swipe-away from Recents + screen off ----
         try {
-            val intent = Intent(this, AppLockService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startService(intent)
-            } else {
-                startService(intent)
-            }
+            startService(Intent(this, AppLockService::class.java))
         } catch (_: Throwable) {
-            // Non-fatal — lock still works via ProcessLifecycleOwner.
+            // Non-fatal — lock still works via ActivityLifecycleCallbacks.
+        }
+    }
+
+    private fun scheduleLockOnBackground() {
+        if (!AppLockController.isEnabled()) return
+        pendingLockJob?.cancel()
+        pendingLockJob = appScope.launch {
+            delay(BACKGROUND_LOCK_DELAY_MS)
+            AppLockController.lock()
         }
     }
 
