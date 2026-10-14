@@ -371,4 +371,103 @@ private fun BreakCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment =
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "استراحة • ${ArabicPlural.hoursMinutes(minutes)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.delete),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onEditStart,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("من ${DateFormatters.time(breakItem.startMs)}")
+                }
+                OutlinedButton(
+                    onClick = onEditEnd,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("إلى ${DateFormatters.time(breakItem.endMs)}")
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateTimePickerDialog(
+    initialMs: Long,
+    onDismiss: () -> Unit,
+    onConfirm: (Long) -> Unit,
+) {
+    val cal = remember { Calendar.getInstance().apply { timeInMillis = initialMs } }
+    var step by remember { mutableStateOf(0) }
+    val dateState = rememberDatePickerState(initialSelectedDateMillis = initialMs)
+    val timeState = rememberTimePickerState(
+        initialHour = cal.get(Calendar.HOUR_OF_DAY),
+        initialMinute = cal.get(Calendar.MINUTE),
+        is24Hour = true,
+    )
+
+    if (step == 0) {
+        DatePickerDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(onClick = { step = 1 }) { Text("التالي") }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            },
+        ) {
+            DatePicker(state = dateState)
+        }
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("اختر الوقت") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    TimePicker(state = timeState)
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val dateMs = dateState.selectedDateMillis ?: initialMs
+                        val out = Calendar.getInstance().apply {
+                            timeInMillis = dateMs
+                            set(Calendar.HOUR_OF_DAY, timeState.hour)
+                            set(Calendar.MINUTE, timeState.minute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        onConfirm(out.timeInMillis)
+                    },
+                ) { Text(stringResource(R.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+}
+
+private fun formatRate(r: Double): String =
+    if (r == r.toLong().toDouble()) r.toLong().toString() else r.toString()

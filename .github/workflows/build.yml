@@ -1,7 +1,10 @@
 name: Build Release APK
 
 on:
-  # Manual trigger only — no auto builds on push.
+  # Auto build on every push to main/master — like the first time.
+  push:
+    branches: [ main, master ]
+  # Manual trigger, in case you want to rebuild without a new commit.
   workflow_dispatch:
     inputs:
       build_note:
@@ -23,6 +26,7 @@ jobs:
         run: |
           echo "Build note: ${{ github.event.inputs.build_note }}"
           echo "Triggered by: ${{ github.actor }}"
+          echo "Event:        ${{ github.event_name }}"
           echo "Run number:   ${{ github.run_number }}"
           echo "Version name will be: 1.0.${{ github.run_number }}"
 
