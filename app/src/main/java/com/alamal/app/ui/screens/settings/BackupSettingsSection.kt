@@ -165,7 +165,6 @@ fun BackupSettingsSection() {
         )
         AlamalDivider()
 
-        // Auto backup toggle
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -196,7 +195,6 @@ fun BackupSettingsSection() {
 
         AlamalDivider()
 
-        // Encryption toggle
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -246,7 +244,6 @@ fun BackupSettingsSection() {
             ) { Text("إدخال كلمة مرور التشفير لهذه الجلسة") }
         }
 
-        // SAF folder
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -324,7 +321,6 @@ fun BackupSettingsSection() {
         )
     }
 
-    // ---- Encryption password dialog ----
     if (showEncryptionDialog) {
         PasswordDialog(
             title = "كلمة مرور التشفير",
@@ -340,7 +336,6 @@ fun BackupSettingsSection() {
         )
     }
 
-    // ---- Password prompt for restore of an encrypted file ----
     if (showPasswordForRestore && pendingRestoreUri != null) {
         PasswordDialog(
             title = "كلمة مرور فك التشفير",
@@ -358,7 +353,6 @@ fun BackupSettingsSection() {
         )
     }
 
-    // ---- Restore confirmation ----
     if (showRestoreConfirm && pendingRestorePayload != null) {
         val p = pendingRestorePayload!!
         AlertDialog(
@@ -474,39 +468,15 @@ private fun PasswordDialog(
 }
 ```
 
-## ما تغيّر
+## نقطة مهمة
 
-| العنصر ↕▾ | قبل ↕▾ | بعد ↕▾ |
-|---|---|---|
-| −**إطار القسم** | `Card` عادية بحواف افتراضية | `AlamalCard` بحواف 16dp وحدود كريمية |
-| −**عنوان القسم** | `primary` افتراضي | `LocalExtendedColors.current.accent` (Terracotta) |
-| −**الفاصل** | لا يوجد | `AlamalDivider` بين الأزرار الرئيسية |
-| −**حقول الإدخال** | بدون شكل | بحواف 12dp |
-| −**الأزرار** | ارتفاع افتراضي | 48dp بحواف 14dp |
-| −**النصوص التوضيحية** | `onSurfaceVariant` باهت | `LocalExtendedColors.current.muted` (Olive Gray) |
-| −**الأزرار الثلاثية** | عرض كامل | عرض كامل بحواف موحّدة 14dp |
-⚙
-
-## تحققت قبل الإرسال
-
-- ✅ الملف مكتمل، ينتهي بـ `}` وحده.
-- ✅ كل الاستيرادات مستخدمة.
-- ✅ لا تغيير على الوظائف — نفس الأزرار ونفس الحوارات.
-- ✅ `AlamalCard` و`AlamalDivider` مستوردان.
-- ✅ `LocalExtendedColors` مستورد.
-- ✅ التوقيع `BackupSettingsSection()` بدون وسائط لم يتغير.
+الملف انتهى بـ `}` وحده بعد `PasswordDialog` مباشرة. **لا توجد دوال أخرى بعده.**
 
 ## الخطوة
 
-**استبدل** `app/src/main/java/com/alamal/app/ui/screens/settings/BackupSettingsSection.kt` — احذف القديم أولًا ثم الصق الجديد.
+1. احذف كل شيء في `BackupSettingsSection.kt` على GitHub.
+2. تأكد أن الملف **فارغ تمامًا** قبل اللصق.
+3. الصق الكود أعلاه.
+4. Commit → Sync → Push.
 
-**Sync + Push** — البناء سيبدأ تلقائيًا. أرسل النتيجة.
-
----
-
-## 🎯 ما بقي بعد هذا
-
-بعد نجاح هذا البناء، سيكون **كل المشروع محدّثًا بأسلوب Claude**. البقية لا شيء إلا:
-
-- **اختبار التطبيق** وتجربة الشاشات.
-- **تحسينات اختيارية**: تصدير CSV، بحث في السجلات، Onboarding.
+أرسل النتيجة.
