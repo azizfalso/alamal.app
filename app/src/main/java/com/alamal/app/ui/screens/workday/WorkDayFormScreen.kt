@@ -11,14 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,7 +50,11 @@ import com.alamal.app.data.db.entity.BreakEntity
 import com.alamal.app.data.db.entity.WorkDayEntity
 import com.alamal.app.data.prefs.AppSettings
 import com.alamal.app.data.prefs.SettingsRepository
+import com.alamal.app.ui.components.AlamalCard
+import com.alamal.app.ui.components.AlamalDivider
+import com.alamal.app.ui.components.AlamalStatRow
 import com.alamal.app.ui.components.DateTimeWheelDialog
+import com.alamal.app.ui.theme.LocalExtendedColors
 import com.alamal.app.util.ArabicPlural
 import com.alamal.app.util.DateFormatters
 import com.alamal.app.util.MoneyFormat
@@ -122,7 +126,9 @@ fun WorkDayFormScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (currentDayId == 0L) "إضافة يوم عمل" else "تعديل يوم عمل") },
+                title = {
+                    Text(if (currentDayId == 0L) "إضافة يوم عمل" else "تعديل يوم عمل")
+                },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(
@@ -131,78 +137,142 @@ fun WorkDayFormScreen(
                         )
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
             )
         },
+        containerColor = MaterialTheme.colorScheme.background,
     ) { pad ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(pad)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            DateTimeRow(
-                label = "وقت الدخول",
-                ms = clockInMs,
-                onClick = { editingClockIn = true },
-            )
-            DateTimeRow(
-                label = "وقت الخروج",
-                ms = clockOutMs,
-                onClick = { editingClockOut = true },
-            )
-
-            Text(
-                text = "الاستراحات",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-
-            breaks.forEachIndexed { index, b ->
-                BreakCard(
-                    breakItem = b,
-                    onEditStart = {
-                        editingBreakIndex = index
-                        editingBreakField = 0
-                    },
-                    onEditEnd = {
-                        editingBreakIndex = index
-                        editingBreakField = 1
-                    },
-                    onDelete = { breaks.removeAt(index) },
+            // ---- Times ----
+            AlamalCard {
+                DateTimeRow(
+                    label = "وقت الدخول",
+                    ms = clockInMs,
+                    onClick = { editingClockIn = true },
+                )
+                AlamalDivider()
+                DateTimeRow(
+                    label = "وقت الخروج",
+                    ms = clockOutMs,
+                    onClick = { editingClockOut = true },
                 )
             }
 
-            OutlinedButton(
-                onClick = {
-                    val start = System.currentTimeMillis()
-                    breaks.add(BreakDraft(startMs = start, endMs = start + 30 * 60_000L))
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("إضافة استراحة")
+            // ---- Breaks ----
+            AlamalCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "الاستراحات",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (breaks.isNotEmpty()) {
+                        Text(
+                            text = "${breaks.size}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = LocalExtendedColors.current.muted,
+                        )
+                    }
+                }
+
+                if (breaks.isEmpty()) {
+                    Text(
+                        text = "لا توجد استراحات. أضف واحدة إن احتجت.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalExtendedColors.current.muted,
+                    )
+                } else {
+                    breaks.forEachIndexed { index, b ->
+                        BreakRow(
+                            breakItem = b,
+                            onEditStart = {
+                                editingBreakIndex = index
+                                editingBreakField = 0
+                            },
+                            onEditEnd = {
+                                editingBreakIndex = index
+                                editingBreakField = 1
+                            },
+                            onDelete = { breaks.removeAt(index) },
+                        )
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        val start = System.currentTimeMillis()
+                        breaks.add(BreakDraft(startMs = start, endMs = start + 30 * 60_000L))
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("إضافة استراحة")
+                }
             }
 
-            OutlinedTextField(
-                value = noteText,
-                onValueChange = { noteText = it },
-                label = { Text("ملاحظة (اختياري)") },
-                minLines = 2,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            // ---- Note ----
+            AlamalCard {
+                OutlinedTextField(
+                    value = noteText,
+                    onValueChange = { noteText = it },
+                    label = { Text("ملاحظة (اختياري)") },
+                    minLines = 2,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
-            StatsCard(actualMin = actualMin, wage = wage, currency = settings.currency)
+            // ---- Live stats ----
+            AlamalCard {
+                Text(
+                    text = "النتيجة",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                AlamalDivider()
+                AlamalStatRow(
+                    "المدة الفعلية",
+                    ArabicPlural.hoursMinutes(actualMin),
+                    bold = true,
+                )
+                AlamalStatRow(
+                    "الأجرة",
+                    MoneyFormat.format(wage, settings.currency),
+                    valueColor = LocalExtendedColors.current.accent,
+                    bold = true,
+                )
+            }
 
+            // ---- Save / Cancel ----
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 OutlinedButton(
                     onClick = onDone,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
                 ) { Text(stringResource(R.string.cancel)) }
 
                 Button(
@@ -231,9 +301,14 @@ fun WorkDayFormScreen(
                     },
                     enabled = clockInMs != null &&
                         (clockOutMs == null || (clockOutMs ?: 0L) > (clockInMs ?: 0L)),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
                 ) { Text(stringResource(R.string.save)) }
             }
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 
@@ -280,118 +355,88 @@ fun WorkDayFormScreen(
 }
 
 @Composable
-private fun StatsCard(actualMin: Long, wage: Double, currency: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text("المدة الفعلية", style = MaterialTheme.typography.labelMedium)
-            Text(
-                text = ArabicPlural.hoursMinutes(actualMin),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(6.dp))
-            Text("الأجرة", style = MaterialTheme.typography.labelMedium)
-            Text(
-                text = MoneyFormat.format(wage, currency),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-    }
-}
-
-@Composable
 private fun DateTimeRow(
     label: String,
     ms: Long?,
     onClick: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = if (ms == null) "غير محدد" else DateFormatters.dateTime(ms),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-            TextButton(onClick = onClick) {
-                Text(if (ms == null) "تعيين" else "تغيير")
-            }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = LocalExtendedColors.current.muted,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = if (ms == null) "غير محدد" else DateFormatters.dateTime(ms),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        TextButton(onClick = onClick) {
+            Text(if (ms == null) "تعيين" else "تغيير")
         }
     }
 }
 
 @Composable
-private fun BreakCard(
+private fun BreakRow(
     breakItem: BreakDraft,
     onEditStart: () -> Unit,
     onEditEnd: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val minutes = ((breakItem.endMs - breakItem.startMs).coerceAtLeast(0L)) / 60_000L
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Column {
                 Text(
-                    text = "استراحة • ${ArabicPlural.hoursMinutes(minutes)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    text = ArabicPlural.hoursMinutes(minutes),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.delete),
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                }
+                Text(
+                    text = "${DateFormatters.time(breakItem.startMs)} → ${DateFormatters.time(breakItem.endMs)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LocalExtendedColors.current.muted,
+                )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = onEditStart,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("من ${DateFormatters.time(breakItem.startMs)}")
-                }
-                OutlinedButton(
-                    onClick = onEditEnd,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("إلى ${DateFormatters.time(breakItem.endMs)}")
-                }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.delete),
+                    tint = MaterialTheme.colorScheme.error,
+                )
             }
         }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = onEditStart,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Text("من ${DateFormatters.time(breakItem.startMs)}")
+            }
+            OutlinedButton(
+                onClick = onEditEnd,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Text("إلى ${DateFormatters.time(breakItem.endMs)}")
+            }
+        }
+        Spacer(Modifier.height(6.dp))
     }
 }

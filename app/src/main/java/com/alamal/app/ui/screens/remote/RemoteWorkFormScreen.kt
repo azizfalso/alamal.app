@@ -9,12 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +49,9 @@ import com.alamal.app.data.AppRepository
 import com.alamal.app.data.db.entity.RemoteWorkEntity
 import com.alamal.app.data.prefs.AppSettings
 import com.alamal.app.data.prefs.SettingsRepository
+import com.alamal.app.ui.components.AlamalCard
+import com.alamal.app.ui.components.AlamalDivider
+import com.alamal.app.ui.theme.LocalExtendedColors
 import com.alamal.app.util.DateFormatters
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -88,7 +92,9 @@ fun RemoteWorkFormScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (currentId == 0L) "إضافة عمل عن بُعد" else "تعديل عمل عن بُعد") },
+                title = {
+                    Text(if (currentId == 0L) "إضافة عمل عن بُعد" else "تعديل عمل عن بُعد")
+                },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(
@@ -97,22 +103,26 @@ fun RemoteWorkFormScreen(
                         )
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
             )
         },
+        containerColor = MaterialTheme.colorScheme.background,
     ) { pad ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(pad)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AlamalCard {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -120,35 +130,39 @@ fun RemoteWorkFormScreen(
                         Text(
                             text = "التاريخ",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = LocalExtendedColors.current.muted,
                         )
-                        Spacer(Modifier.height(2.dp))
+                        Spacer(Modifier.height(4.dp))
                         Text(
                             text = DateFormatters.dateArabic(dateMs),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                     TextButton(onClick = { editingDate = true }) { Text("تغيير") }
                 }
             }
 
-            OutlinedTextField(
-                value = amountText,
-                onValueChange = { amountText = it },
-                label = { Text("المبلغ (${settings.currency})") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            OutlinedTextField(
-                value = noteText,
-                onValueChange = { noteText = it },
-                label = { Text("ملاحظة (اختياري)") },
-                minLines = 2,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            AlamalCard {
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { amountText = it },
+                    label = { Text("المبلغ (${settings.currency})") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                AlamalDivider()
+                OutlinedTextField(
+                    value = noteText,
+                    onValueChange = { noteText = it },
+                    label = { Text("ملاحظة (اختياري)") },
+                    minLines = 2,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -156,7 +170,10 @@ fun RemoteWorkFormScreen(
             ) {
                 OutlinedButton(
                     onClick = onDone,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
                 ) { Text(stringResource(R.string.cancel)) }
 
                 Button(
@@ -177,7 +194,10 @@ fun RemoteWorkFormScreen(
                         }
                     },
                     enabled = (amountText.toDoubleOrNull() ?: 0.0) > 0.0,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
                 ) { Text(stringResource(R.string.save)) }
             }
         }

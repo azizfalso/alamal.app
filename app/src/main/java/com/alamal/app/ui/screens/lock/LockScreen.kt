@@ -3,6 +3,7 @@ package com.alamal.app.ui.screens.lock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material3.Icon
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alamal.app.R
+import com.alamal.app.ui.theme.LocalExtendedColors
 import kotlinx.coroutines.delay
 
 @Composable
@@ -50,8 +53,8 @@ fun LockScreen(
     LaunchedEffect(error) {
         if (error) {
             repeat(3) {
-                shakeOffset.animateTo(20f, tween(50))
-                shakeOffset.animateTo(-20f, tween(50))
+                shakeOffset.animateTo(18f, tween(50))
+                shakeOffset.animateTo(-18f, tween(50))
             }
             shakeOffset.animateTo(0f, tween(50))
             error = false
@@ -62,7 +65,7 @@ fun LockScreen(
     LaunchedEffect(input) {
         if (input.length == 4) {
             if (input == expectedPin) {
-                delay(80)
+                delay(100)
                 onUnlock()
             } else {
                 error = true
@@ -73,48 +76,78 @@ fun LockScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(horizontal = 24.dp, vertical = 40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
+        // Lock icon (a simple soft badge)
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .border(
+                    width = 1.dp,
+                    color = LocalExtendedColors.current.border,
+                    shape = RoundedCornerShape(20.dp),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "🔒",
+                fontSize = 28.sp,
+            )
+        }
+
+        Spacer(Modifier.height(28.dp))
+
         Text(
             text = stringResource(R.string.lock_title),
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.lock_subtitle),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = LocalExtendedColors.current.muted,
             textAlign = TextAlign.Center,
         )
 
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(44.dp))
 
+        // 4 PIN dots
         Row(
             modifier = Modifier.graphicsLayer { translationX = shakeOffset.value },
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             repeat(4) { i ->
                 val filled = i < input.length
+                val dotColor = when {
+                    error -> MaterialTheme.colorScheme.error
+                    filled -> LocalExtendedColors.current.accent
+                    else -> MaterialTheme.colorScheme.surfaceContainerHigh
+                }
+                val dotSize = if (filled) 20.dp else 16.dp
                 Box(
                     modifier = Modifier
-                        .size(18.dp)
+                        .size(dotSize)
                         .clip(CircleShape)
-                        .background(
-                            when {
-                                error -> MaterialTheme.colorScheme.error
-                                filled -> MaterialTheme.colorScheme.primary
-                                else -> MaterialTheme.colorScheme.surfaceVariant
-                            }
+                        .background(dotColor)
+                        .border(
+                            width = if (!filled && !error) 1.dp else 0.dp,
+                            color = if (!filled && !error)
+                                LocalExtendedColors.current.borderStrong
+                            else
+                                dotColor,
+                            shape = CircleShape,
                         )
                 )
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         Text(
             text = stringResource(R.string.lock_error),
             color = MaterialTheme.colorScheme.error,
@@ -122,8 +155,9 @@ fun LockScreen(
             modifier = Modifier.alpha(if (error) 1f else 0f),
         )
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(36.dp))
 
+        // Keypad
         val keys = listOf(
             listOf("1", "2", "3"),
             listOf("4", "5", "6"),
@@ -131,11 +165,11 @@ fun LockScreen(
             listOf("", "0", "\u232B"),
         )
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             keys.forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                     row.forEach { key ->
                         KeypadButton(
                             label = key,
@@ -156,22 +190,38 @@ fun LockScreen(
 
 @Composable
 private fun KeypadButton(label: String, onClick: () -> Unit) {
+    val isEmpty = label.isEmpty()
+    val isBackspace = label == "\u232B"
+
+    val bgColor = when {
+        isEmpty -> MaterialTheme.colorScheme.background
+        isBackspace -> MaterialTheme.colorScheme.surfaceContainerHigh
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
+    val borderColor = when {
+        isEmpty -> androidx.compose.ui.graphics.Color.Transparent
+        else -> LocalExtendedColors.current.border
+    }
+
     Box(
         modifier = Modifier
             .size(72.dp)
             .clip(CircleShape)
-            .background(
-                if (label.isEmpty()) MaterialTheme.colorScheme.surface
-                else MaterialTheme.colorScheme.surfaceVariant
+            .background(bgColor)
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = CircleShape,
             )
-            .clickable(enabled = label.isNotEmpty()) { onClick() },
+            .clickable(enabled = !isEmpty) { onClick() },
         contentAlignment = Alignment.Center,
     ) {
         when {
-            label == "\u232B" -> Icon(
+            isBackspace -> Icon(
                 imageVector = Icons.AutoMirrored.Filled.Backspace,
                 contentDescription = stringResource(R.string.delete),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = LocalExtendedColors.current.muted,
+                modifier = Modifier.size(24.dp),
             )
             label.isNotEmpty() -> Text(
                 text = label,

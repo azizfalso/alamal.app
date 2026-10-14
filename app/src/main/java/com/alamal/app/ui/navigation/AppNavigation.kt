@@ -4,15 +4,28 @@ import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,10 +36,14 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -47,6 +64,7 @@ import com.alamal.app.ui.screens.remote.RemoteWorkFormScreen
 import com.alamal.app.ui.screens.settings.SettingsScreen
 import com.alamal.app.ui.screens.stats.StatsScreen
 import com.alamal.app.ui.screens.workday.WorkDayFormScreen
+import com.alamal.app.ui.theme.LocalExtendedColors
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -90,7 +108,7 @@ fun AppNavigation(
         }
     }
 
-    // ---- Handle shortcut actions ----
+    // Handle shortcut actions from the launcher icon.
     if (pendingShortcutAction != null) {
         LaunchedEffect(pendingShortcutAction.value) {
             val action = pendingShortcutAction.value ?: return@LaunchedEffect
@@ -120,39 +138,11 @@ fun AppNavigation(
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    items.forEach { item ->
-                        val selected = backStackEntry?.destination?.hierarchy
-                            ?.any { it.route == item.route } == true
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                if (currentRoute == item.route) return@NavigationBarItem
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = {
-                                Icon(item.icon, contentDescription = stringResource(item.labelRes))
-                            },
-                            label = { Text(stringResource(item.labelRes)) },
-                        )
-                    }
-                }
-            }
-        },
-    ) { padding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = Routes.HOME,
-            modifier = Modifier.padding(padding),
+            modifier = Modifier.fillMaxSize(),
         ) {
             composable(Routes.HOME) {
                 HomeScreen(
@@ -186,7 +176,6 @@ fun AppNavigation(
             composable(Routes.PAYMENT) {
                 PaymentScreen(onDone = { navController.popBackStack() })
             }
-
             composable(Routes.STATS) {
                 StatsScreen(onBack = { navController.popBackStack() })
             }
@@ -238,6 +227,112 @@ fun AppNavigation(
                     onDone = { navController.popBackStack() },
                 )
             }
+        }
+
+        if (showBottomBar) {
+            FloatingBottomBar(
+                items = items,
+                currentRoute = currentRoute,
+                onItemClick = { route ->
+                    if (currentRoute == route) return@FloatingBottomBar
+                    navController.navigate(route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun FloatingBottomBar(
+    items: List<BottomNavItem>,
+    currentRoute: String?,
+    onItemClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(28.dp)
+    val bg = MaterialTheme.colorScheme.surfaceContainerLow
+    val border = LocalExtendedColors.current.border
+
+    Box(
+        modifier = modifier
+            .navigationBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(bg)
+                .border(1.dp, border, shape)
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            items.forEach { item ->
+                val selected = currentRoute == item.route
+                FloatingNavItem(
+                    item = item,
+                    selected = selected,
+                    onClick = { onItemClick(item.route) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FloatingNavItem(
+    item: BottomNavItem,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val accent = LocalExtendedColors.current.accent
+    val accentOn = LocalExtendedColors.current.accentOn
+    val muted = LocalExtendedColors.current.muted
+
+    val bgColor by animateColorAsState(
+        targetValue = if (selected) accent else Color.Transparent,
+        label = "nav_bg",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) accentOn else muted,
+        label = "nav_fg",
+    )
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(22.dp))
+            .background(bgColor)
+            .clickable(onClick = onClick)
+            .padding(
+                horizontal = if (selected) 16.dp else 14.dp,
+                vertical = 10.dp,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = item.icon,
+            contentDescription = stringResource(item.labelRes),
+            tint = contentColor,
+            modifier = Modifier.size(22.dp),
+        )
+        if (selected) {
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = stringResource(item.labelRes),
+                style = MaterialTheme.typography.labelLarge,
+                color = contentColor,
+            )
         }
     }
 }
