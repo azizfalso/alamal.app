@@ -2,9 +2,11 @@ package com.alamal.app.ui.screens.records
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,15 +18,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -60,25 +67,130 @@ fun RecordsScreen(
                 contentAlignment = Alignment.Center,
             ) { CircularProgressIndicator() }
 
-            state.weeks.isEmpty() -> EmptyState()
-
             else -> LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
                     .navigationBarsPadding(),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    bottom = 96.dp,
-                ),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 96.dp),
             ) {
+                // ---- Header ----
                 item {
                     Text(
                         text = "السجلات",
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
+
+                // ---- Search bar ----
+                item {
+                    OutlinedTextField(
+                        value = state.searchQuery,
+                        onValueChange = vm::setSearchQuery,
+                        placeholder = { Text("ابحث في الملاحظات...") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = LocalExtendedColors.current.muted,
+                            )
+                        },
+                        trailingIcon = {
+                            if (state.searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { vm.setSearchQuery("") }) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "مسح",
+                                        tint = LocalExtendedColors.current.muted,
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                // ---- Filter chips ----
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        FilterChip(
+                            selected = state.filter == RecordFilter.ALL,
+                            onClick = { vm.setFilter(RecordFilter.ALL) },
+                            label = { Text("الكل") },
+                        )
+                        FilterChip(
+                            selected = state.filter == RecordFilter.WORK,
+                            onClick = { vm.setFilter(RecordFilter.WORK) },
+                            label = { Text("عمل") },
+                        )
+                        FilterChip(
+                            selected = state.filter == RecordFilter.REMOTE,
+                            onClick = { vm.setFilter(RecordFilter.REMOTE) },
+                            label = { Text("عن بُعد") },
+                        )
+                        FilterChip(
+                            selected = state.filter == RecordFilter.CREDIT,
+                            onClick = { vm.setFilter(RecordFilter.CREDIT) },
+                            label = { Text("كريدي") },
+                        )
+                    }
+                }
+
+                // ---- Empty state (no results after filtering) ----
+                if (state.weeks.isEmpty()) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = if (state.searchQuery.isNotEmpty() || state.filter != RecordFilter.ALL)
+                                    "لا توجد نتائج مطابقة"
+                                else
+                                    "لا توجد سجلات بعد",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = if (state.searchQuery.isNotEmpty() || state.filter != RecordFilter.ALL)
+                                    "جرّب تغيير كلمة البحث أو نوع الفلتر."
+                                else
+                                    "ابدأ بتسجيل دخول العمل أو أضف عملًا عن بُعد / كريدي.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = LocalExtendedColors.current.muted,
+                            )
+                        }
+                    }
+                }
+
+                // ---- Results count ----
+                if (state.weeks.isNotEmpty() &&
+                    (state.searchQuery.isNotEmpty() || state.filter != RecordFilter.ALL)
+                ) {
+                    item {
+                        Text(
+                            text = "${state.totalMatches} نتيجة",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = LocalExtendedColors.current.muted,
+                            modifier = Modifier.padding(start = 4.dp),
+                        )
+                    }
+                }
+
+                // ---- Weeks ----
                 items(state.weeks, key = { it.weekStart }) { week ->
                     WeekBlock(
                         week = week,
@@ -94,29 +206,6 @@ fun RecordsScreen(
 }
 
 @Composable
-private fun EmptyState() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = "لا توجد سجلات بعد",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "ابدأ بتسجيل دخول العمل أو أضف عملًا عن بُعد / كريدي.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = LocalExtendedColors.current.muted,
-        )
-    }
-}
-
-@Composable
 private fun WeekBlock(
     week: WeekGroup,
     currency: String,
@@ -125,7 +214,6 @@ private fun WeekBlock(
     onOpenCredit: (Long) -> Unit,
 ) {
     AlamalCard(contentPadding = 0) {
-        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -147,7 +235,6 @@ private fun WeekBlock(
             )
         }
         AlamalDivider()
-        // Rows
         week.items.forEachIndexed { index, item ->
             RecordRow(
                 item = item,
@@ -194,10 +281,9 @@ private fun RecordRow(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Icon badge (rounded square with soft bg)
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(42.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center,
@@ -205,7 +291,7 @@ private fun RecordRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(22.dp),
                 tint = if (isCredit)
                     MaterialTheme.colorScheme.error
                 else
@@ -218,6 +304,7 @@ private fun RecordRow(
                 text = item.title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
             )
             Spacer(Modifier.height(2.dp))
             Text(
@@ -237,8 +324,7 @@ private fun RecordRow(
         Spacer(Modifier.width(10.dp))
         Text(
             text = amountText,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.titleMedium,
             color = amountColor,
         )
     }

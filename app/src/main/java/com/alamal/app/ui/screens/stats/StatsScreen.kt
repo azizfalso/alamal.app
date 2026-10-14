@@ -53,6 +53,7 @@ import com.alamal.app.ui.components.AlamalDivider
 import com.alamal.app.ui.components.AlamalStatRow
 import com.alamal.app.ui.theme.LocalExtendedColors
 import com.alamal.app.util.ArabicPlural
+import com.alamal.app.util.DateFormatters
 import com.alamal.app.util.MoneyFormat
 
 private val DayNamesAr = listOf("إث", "ثل", "أر", "خم", "جم", "سب", "أح")
@@ -102,8 +103,8 @@ fun StatsScreen(onBack: () -> Unit) {
                 .fillMaxSize()
                 .padding(pad)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             AlamalCard(contentPadding = 6) {
                 Row(
@@ -168,7 +169,7 @@ fun StatsScreen(onBack: () -> Unit) {
 private fun OverviewTab(state: StatsUiState) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         NetCard(net = state.net, currency = state.currency)
 
@@ -177,6 +178,7 @@ private fun OverviewTab(state: StatsUiState) {
                 text = "ملخّص الشهر",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
             )
             AlamalDivider()
             AlamalStatRow("أيام العمل", state.daysCount.toString())
@@ -194,11 +196,46 @@ private fun OverviewTab(state: StatsUiState) {
             }
         }
 
+        // ---- Advanced numbers card ----
+        if (state.daysCount > 0) {
+            AlamalCard {
+                Text(
+                    text = "أرقام مهمة",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
+                )
+                AlamalDivider()
+                AlamalStatRow(
+                    label = "متوسط الساعة",
+                    value = MoneyFormat.format(state.avgHourlyWage, state.currency),
+                )
+                AlamalStatRow(
+                    label = "متوسط اليوم",
+                    value = MoneyFormat.format(state.avgDailyWage, state.currency),
+                )
+                if (state.bestDayWage > 0.0001) {
+                    AlamalStatRow(
+                        label = "أفضل يوم (${DateFormatters.dateArabicShort(state.bestDayDate)})",
+                        value = MoneyFormat.format(state.bestDayWage, state.currency),
+                        valueColor = LocalExtendedColors.current.success,
+                    )
+                }
+                if (state.maxDailyMinutes > 0) {
+                    AlamalStatRow(
+                        label = "أطول يوم (${DateFormatters.dateArabicShort(state.maxDailyMinutesDate)})",
+                        value = ArabicPlural.hoursMinutes(state.maxDailyMinutes),
+                    )
+                }
+            }
+        }
+
         AlamalCard {
             Text(
                 text = "المبالغ اليومية",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
             )
             Text(
                 text = "الأعمدة الخضراء موجبة، والحمراء كريدي/سالب",
@@ -361,38 +398,38 @@ private fun MiniWeekBars(days: List<DayBar>, modifier: Modifier = Modifier) {
 @Composable
 private fun NetCard(net: Double, currency: String) {
     val accent = LocalExtendedColors.current.accent
-    val accentOn = LocalExtendedColors.current.accentOn
     val isNegative = net < -0.0001
-    val bg = if (isNegative) MaterialTheme.colorScheme.errorContainer else accent
-    val fg = if (isNegative) MaterialTheme.colorScheme.error else accentOn
-    val labelColor = if (isNegative)
-        MaterialTheme.colorScheme.error.copy(alpha = 0.75f)
-    else accentOn.copy(alpha = 0.85f)
+    val muted = LocalExtendedColors.current.muted
+    val numberColor = if (isNegative) MaterialTheme.colorScheme.error else accent
+    val borderColor = if (isNegative)
+        MaterialTheme.colorScheme.error.copy(alpha = 0.30f)
+    else accent.copy(alpha = 0.25f)
 
-    Box(
+    val shape = RoundedCornerShape(20.dp)
+    val formatted = MoneyFormat.formatSigned(net, currency).replace(" ", "\u00A0")
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(bg)
-            .padding(horizontal = 24.dp, vertical = 28.dp),
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(1.dp, borderColor, shape)
+            .padding(horizontal = 24.dp, vertical = 26.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "صافي الشهر",
-                style = MaterialTheme.typography.labelLarge,
-                color = labelColor,
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = MoneyFormat.formatSigned(net, currency),
-                style = MaterialTheme.typography.displaySmall,
-                color = fg,
-                fontWeight = FontWeight.Medium,
-            )
-        }
+        Text(
+            text = "صافي الشهر",
+            style = MaterialTheme.typography.titleMedium,
+            color = muted,
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = formatted,
+            style = MaterialTheme.typography.headlineLarge,
+            color = numberColor,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+        )
     }
 }
 

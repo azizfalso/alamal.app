@@ -76,10 +76,10 @@ fun SettingsScreen() {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 20.dp)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
             .navigationBarsPadding()
             .padding(bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
             text = stringResource(R.string.settings_title),
@@ -92,7 +92,7 @@ fun SettingsScreen() {
         SettingsSection(title = stringResource(R.string.settings_section_appearance)) {
             Text(
                 text = stringResource(R.string.settings_theme_mode),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelLarge,
                 color = LocalExtendedColors.current.muted,
             )
             Spacer(Modifier.height(6.dp))
@@ -130,7 +130,7 @@ fun SettingsScreen() {
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(44.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(currentColor)
                         .border(
@@ -145,6 +145,7 @@ fun SettingsScreen() {
                         text = stringResource(R.string.settings_color),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
@@ -213,6 +214,12 @@ fun SettingsScreen() {
 
         // ============ Backup ============
         BackupSettingsSection()
+
+        // ============ CSV Export ============
+        CsvExportSection()
+
+        // ============ Notifications ============
+        NotificationsSection()
 
         // ============ Security ============
         SettingsSection(title = stringResource(R.string.settings_section_security)) {

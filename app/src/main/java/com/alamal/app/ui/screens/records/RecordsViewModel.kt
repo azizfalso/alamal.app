@@ -14,11 +14,15 @@ import com.alamal.app.data.prefs.SettingsRepository
 import com.alamal.app.domain.MoneyCalculator
 import com.alamal.app.util.ArabicPlural
 import com.alamal.app.util.DateFormatters
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
 enum class RecordType { WORK_DAY, REMOTE, CREDIT }
+
+enum class RecordFilter { ALL, WORK, REMOTE, CREDIT }
 
 data class RecordItem(
     val id: Long,
@@ -41,6 +45,9 @@ data class RecordsUiState(
     val loading: Boolean = true,
     val weeks: List<WeekGroup> = emptyList(),
     val currency: String = "DH",
+    val searchQuery: String = "",
+    val filter: RecordFilter = RecordFilter.ALL,
+    val totalMatches: Int = 0,
 )
 
 private data class RawBundle(
@@ -62,21 +69,37 @@ class RecordsViewModel(
         repo.currentCredits,
     ) { w, b, r, c -> RawBundle(w, b, r, c) }
 
-    val state = combine(raw, settingsRepo.settings) { bundle, settings: AppSettings ->
+    private val searchQuery = MutableStateFlow("")
+    private val filter = MutableStateFlow(RecordFilter.ALL)
+
+    fun setSearchQuery(q: String) {
+        searchQuery.value = q
+    }
+
+    fun setFilter(f: RecordFilter) {
+        filter.value = f
+    }
+
+    val state: StateFlow<RecordsUiState> = combine(
+        raw,
+        settingsRepo.settings,
+        searchQuery,
+        filter,
+    ) { bundle, settings: AppSettings, query, filterType ->
+
         val breaksByDay = bundle.breaks.groupBy { it.workDayId }
-        val items = mutableListOf<RecordItem>()
+        val allItems = mutableListOf<RecordItem>()
 
         bundle.workDays.forEach { day ->
             val brk = breaksByDay[day.id].orEmpty()
             val stats = MoneyCalculator.computeDayStats(day, brk)
-            val title = if (day.clockOut == null) "أنت في العمل الآن"
-            else "يوم عمل"
+            val title = if (day.clockOut == null) "أنت في العمل الآن" else "يوم عمل"
             val timeRange = "${DateFormatters.time(day.clockIn)} → ${
                 day.clockOut?.let { DateFormatters.time(it) } ?: "—"
             }"
             val breaksText = if (brk.isEmpty()) "" else " • ${brk.size} استراحة"
             val subtitle = "$timeRange • ${ArabicPlural.hoursMinutes(stats.actualMinutes)}$breaksText"
-            items += RecordItem(
+            allItems += RecordItem(
                 id = day.id,
                 type = RecordType.WORK_DAY,
                 dateMs = day.clockIn,
@@ -88,7 +111,7 @@ class RecordsViewModel(
         }
 
         bundle.remotes.forEach { r ->
-            items += RecordItem(
+            allItems += RecordItem(
                 id = r.id,
                 type = RecordType.REMOTE,
                 dateMs = r.date,
@@ -100,7 +123,7 @@ class RecordsViewModel(
         }
 
         bundle.credits.forEach { c ->
-            items += RecordItem(
+            allItems += RecordItem(
                 id = c.id,
                 type = RecordType.CREDIT,
                 dateMs = c.date,
@@ -111,9 +134,26 @@ class RecordsViewModel(
             )
         }
 
-        // Group by week (Monday start), sort desc.
+        // ---- Apply search + filter ----
+        val q = query.trim().lowercase()
+        val filtered = allItems.filter { item ->
+            val matchesFilter = when (filterType) {
+                RecordFilter.ALL -> true
+                RecordFilter.WORK -> item.type == RecordType.WORK_DAY
+                RecordFilter.REMOTE -> item.type == RecordType.REMOTE
+                RecordFilter.CREDIT -> item.type == RecordType.CREDIT
+            }
+            if (!matchesFilter) return@filter false
+            if (q.isEmpty()) return@filter true
+            val inTitle = item.title.lowercase().contains(q)
+            val inNote = item.note?.lowercase()?.contains(q) == true
+            val inSubtitle = item.subtitle.lowercase().contains(q)
+            inTitle || inNote || inSubtitle
+        }
+
+        // ---- Group by week (Monday) ----
         val weeksMap = mutableMapOf<Long, MutableList<RecordItem>>()
-        items.forEach { item ->
+        filtered.forEach { item ->
             val ws = DateFormatters.weekStartMonday(item.dateMs)
             weeksMap.getOrPut(ws) { mutableListOf() }.add(item)
         }
@@ -141,6 +181,9 @@ class RecordsViewModel(
             loading = false,
             weeks = weeks,
             currency = settings.currency,
+            searchQuery = query,
+            filter = filterType,
+            totalMatches = filtered.size,
         )
     }.stateIn(
         scope = viewModelScope,

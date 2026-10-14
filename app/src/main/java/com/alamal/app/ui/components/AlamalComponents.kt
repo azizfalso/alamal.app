@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -48,7 +49,7 @@ fun AlamalCard(
 
     Column(
         modifier = base.padding(contentPadding.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
         content = content,
     )
 }
@@ -81,7 +82,7 @@ fun AlamalScreenTitle(text: String, modifier: Modifier = Modifier) {
 
 /**
  * Label + value row, used in summary cards and stat blocks.
- * Label uses `muted` color from the extended palette.
+ * Values are emphasized slightly more than labels.
  */
 @Composable
 fun AlamalStatRow(
@@ -92,7 +93,9 @@ fun AlamalStatRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -101,10 +104,11 @@ fun AlamalStatRow(
             style = MaterialTheme.typography.bodyMedium,
             color = LocalExtendedColors.current.muted,
         )
+        Spacer(Modifier.padding(horizontal = 8.dp))
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (bold) FontWeight.Medium else FontWeight.Normal,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Medium,
             color = if (valueColor == Color.Unspecified)
                 MaterialTheme.colorScheme.onSurface
             else valueColor,

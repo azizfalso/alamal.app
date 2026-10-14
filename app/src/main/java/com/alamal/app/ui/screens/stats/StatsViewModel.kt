@@ -49,6 +49,13 @@ data class StatsUiState(
     val weeklyStats: List<WeekStats> = emptyList(),
     val currency: String = "DH",
     val canGoNext: Boolean = false,
+    // ---- Advanced stats ----
+    val avgHourlyWage: Double = 0.0,
+    val avgDailyWage: Double = 0.0,
+    val maxDailyMinutes: Long = 0L,
+    val maxDailyMinutesDate: Long = 0L,
+    val bestDayWage: Double = 0.0,
+    val bestDayDate: Long = 0L,
 )
 
 private data class DataBundle(
@@ -131,6 +138,51 @@ class StatsViewModel(
 
         val weekly = computeWeeklyStats(year, month, byDayAmount, byDayMinutes)
 
+        // ---- Advanced computations ----
+        val totalHours = totalMinutes / 60.0
+        val avgHourly = if (totalHours > 0.0) totalWages / totalHours else 0.0
+        val avgDaily = if (daysCount > 0) totalWages / daysCount else 0.0
+
+        var maxMinutes = 0L
+        var maxMinutesDay = 0
+        byDayMinutes.forEach { (d, mins) ->
+            if (mins > maxMinutes) {
+                maxMinutes = mins
+                maxMinutesDay = d
+            }
+        }
+
+        var bestWage = 0.0
+        var bestDay = 0
+        byDayAmount.forEach { (d, amount) ->
+            if (amount > bestWage) {
+                bestWage = amount
+                bestDay = d
+            }
+        }
+
+        val firstOfMonth = Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        val maxMinutesMs = if (maxMinutesDay > 0) {
+            (firstOfMonth.clone() as Calendar).apply {
+                set(Calendar.DAY_OF_MONTH, maxMinutesDay)
+            }.timeInMillis
+        } else 0L
+
+        val bestDayMs = if (bestDay > 0) {
+            (firstOfMonth.clone() as Calendar).apply {
+                set(Calendar.DAY_OF_MONTH, bestDay)
+            }.timeInMillis
+        } else 0L
+
         val nowCal = Calendar.getInstance()
         val isCurrentMonth = nowCal.get(Calendar.YEAR) == year &&
             nowCal.get(Calendar.MONTH) == month
@@ -150,6 +202,12 @@ class StatsViewModel(
             weeklyStats = weekly,
             currency = settings.currency,
             canGoNext = !isCurrentMonth,
+            avgHourlyWage = avgHourly,
+            avgDailyWage = avgDaily,
+            maxDailyMinutes = maxMinutes,
+            maxDailyMinutesDate = maxMinutesMs,
+            bestDayWage = bestWage,
+            bestDayDate = bestDayMs,
         )
     }.stateIn(
         scope = viewModelScope,

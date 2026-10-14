@@ -1,5 +1,6 @@
 package com.alamal.app.ui.screens.workday
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -401,11 +403,13 @@ private fun DateTimeRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
@@ -413,15 +417,20 @@ private fun DateTimeRow(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = if (ms == null) "غير محدد" else DateFormatters.dateTime(ms),
+                text = if (ms == null) "اضغط لتعيين الوقت" else DateFormatters.dateTime(ms),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (ms == null)
+                    LocalExtendedColors.current.meta
+                else
+                    MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium,
             )
         }
-        TextButton(onClick = onClick) {
-            Text(if (ms == null) "تعيين" else "تغيير")
-        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = LocalExtendedColors.current.meta,
+        )
     }
 }
 

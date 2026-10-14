@@ -9,6 +9,8 @@ data class AppSettings(
     val autoBackupEnabled: Boolean = true,
     val backupEncrypted: Boolean = false,
     val backupTreeUri: String = "",
+    val notificationsEnabled: Boolean = false,
+    val longShiftHours: Int = 12,
 ) {
     companion object {
         const val DEFAULT_COLOR_HEX = "#4D6BFE"

@@ -7,16 +7,12 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// ---- Keystore (from GitHub Actions secrets, written to app/keystore.properties) ----
 val keystorePropertiesFile = rootProject.file("app/keystore.properties")
 val hasKeystore = keystorePropertiesFile.exists()
 val keystoreProperties = Properties().apply {
     if (hasKeystore) keystorePropertiesFile.inputStream().use { load(it) }
 }
 
-// ---- Version ----
-// versionCodeOverride is passed by GitHub Actions as -PversionCodeOverride=<run_number>
-// Local builds fall back to 1.
 val versionCodeOverride: Int =
     (project.findProperty("versionCodeOverride") as String?)?.toIntOrNull() ?: 1
 val versionNameOverride: String = "1.0.$versionCodeOverride"
@@ -97,6 +93,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.androidx.compose.bom))
@@ -114,6 +111,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.work.runtime.ktx)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

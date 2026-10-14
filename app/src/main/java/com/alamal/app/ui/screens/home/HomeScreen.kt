@@ -80,27 +80,19 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 20.dp)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
             .navigationBarsPadding()
             .padding(bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column {
-            Text(
-                text = "الفترة الحالية",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "ملخّص أرباحك منذ آخر دفعة",
-                style = MaterialTheme.typography.bodyMedium,
-                color = LocalExtendedColors.current.muted,
-            )
-        }
-
-        Spacer(Modifier.height(2.dp))
+        // Compact header — title only, no subtitle.
+        Text(
+            text = "الفترة الحالية",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(bottom = 2.dp),
+        )
 
         NetCard(net = state.netBalance, currency = state.currency)
 
@@ -176,7 +168,7 @@ fun HomeScreen(
             onClick = onOpenStats,
         )
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
 
         Button(
             onClick = onOpenPayment,
@@ -188,7 +180,7 @@ fun HomeScreen(
             Icon(
                 Icons.Default.CheckCircle,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(22.dp),
             )
             Spacer(Modifier.width(10.dp))
             Text(
@@ -230,7 +222,6 @@ private fun NetCard(net: Double, currency: String) {
     else accent.copy(alpha = 0.25f)
 
     val shape = RoundedCornerShape(20.dp)
-    // Non-breaking space keeps number + currency on one line in RTL.
     val formatted = MoneyFormat.formatSigned(net, currency).replace(" ", "\u00A0")
 
     Column(
@@ -239,7 +230,7 @@ private fun NetCard(net: Double, currency: String) {
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .border(1.dp, borderColor, shape)
-            .padding(horizontal = 24.dp, vertical = 28.dp),
+            .padding(horizontal = 24.dp, vertical = 26.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -276,7 +267,7 @@ private fun SummaryCard(
 ) {
     val success = LocalExtendedColors.current.success
 
-    AlamalCard {
+    AlamalCard(contentPadding = 20) {
         Text(
             text = "ملخّص الفترة",
             style = MaterialTheme.typography.titleMedium,
@@ -284,44 +275,70 @@ private fun SummaryCard(
             fontWeight = FontWeight.Medium,
         )
         AlamalDivider()
-        Spacer(Modifier.height(4.dp))
 
-        AlamalStatRow(
-            label = "الساعات",
-            value = ArabicPlural.hoursMinutes(totalMinutes),
-        )
-        AlamalStatRow(
-            label = "عدد الأيام",
-            value = ArabicPlural.days(workDaysCount.toLong()),
-        )
-        AlamalStatRow(
-            label = "أجور الساعات",
-            value = MoneyFormat.format(totalWages, currency),
-        )
-        if (totalRemote > 0.0001) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+        ) {
             AlamalStatRow(
-                label = "منها عن بُعد",
-                value = MoneyFormat.format(totalRemote, currency),
+                label = "الساعات",
+                value = ArabicPlural.hoursMinutes(totalMinutes),
             )
-        }
-        if (totalCredits > 0.0001) {
+            RowDivider()
+
             AlamalStatRow(
-                label = "الكريدي",
-                value = "- " + MoneyFormat.format(totalCredits, currency),
-                valueColor = MaterialTheme.colorScheme.error,
+                label = "عدد الأيام",
+                value = ArabicPlural.days(workDaysCount.toLong()),
             )
-        }
-        if (abs(carried) > 0.0001) {
+            RowDivider()
+
             AlamalStatRow(
-                label = "الرصيد المرحَّل",
-                value = MoneyFormat.formatSigned(carried, currency),
-                valueColor = if (carried < 0)
-                    MaterialTheme.colorScheme.error
-                else success,
-                bold = true,
+                label = "أجور الساعات",
+                value = MoneyFormat.format(totalWages, currency),
             )
+
+            if (totalRemote > 0.0001) {
+                RowDivider()
+                AlamalStatRow(
+                    label = "منها عن بُعد",
+                    value = MoneyFormat.format(totalRemote, currency),
+                )
+            }
+
+            if (totalCredits > 0.0001) {
+                RowDivider()
+                AlamalStatRow(
+                    label = "الكريدي",
+                    value = "- " + MoneyFormat.format(totalCredits, currency),
+                    valueColor = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            if (abs(carried) > 0.0001) {
+                RowDivider()
+                AlamalStatRow(
+                    label = "الرصيد المرحَّل",
+                    value = MoneyFormat.formatSigned(carried, currency),
+                    valueColor = if (carried < 0)
+                        MaterialTheme.colorScheme.error
+                    else success,
+                    bold = true,
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun RowDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(LocalExtendedColors.current.border.copy(alpha = 0.5f)),
+    )
 }
 
 @Composable
