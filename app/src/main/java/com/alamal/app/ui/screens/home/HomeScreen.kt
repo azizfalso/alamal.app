@@ -86,9 +86,7 @@ fun HomeScreen(
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
         )
-
         NetCard(net = state.netBalance, currency = state.currency)
-
         SummaryCard(
             totalMinutes = state.totalMinutes,
             totalWages = state.totalWages,
@@ -363,28 +361,3 @@ private fun SecondaryAction(
         Text(text)
     }
 }
-```
-
-## ما تفعله بدقة
-
-1. **افتح** `app/src/main/java/com/alamal/app/ui/screens/home/HomeScreen.kt` على GitHub.
-2. اضغط **الرابط بين الكود والملف** في GitHub لتفعيل التحرير (أيقونة القلم ✏️).
-3. **اضغط داخل مربع الكود، ثم `Ctrl+A` ثم `Delete`** (أو أمسك الشاشة ← تحديد الكل ← حذف). تأكد أن المربع فارغ تمامًا.
-4. **الصق الكود الجديد كاملًا** (من `package` أول سطر حتى `}` الأخير).
-5. تأكد أن **آخر سطر** في الملف هو:
-
-```
-}
-```
-
-(لا شيء بعده).
-6. Commit → Push.
-
-## تحققت قبل الإرسال
-
-- ✅ الملف الآن أقصر (~330 سطرًا بدل ~400).
-- ✅ لا توجد دوال مكررة (`PaymentButton` و`QuickActionsRow` دمجهما).
-- ✅ كل الاستيرادات لا تزال مستخدمة.
-- ✅ آخر سطر `}` وحده.
-
-**بعد Push، انتظر البناء وأخبرني بالنتيجة.**
