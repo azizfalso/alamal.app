@@ -9,7 +9,6 @@ import android.provider.MediaStore
 import androidx.documentfile.provider.DocumentFile
 import com.alamal.app.data.db.AppDatabase
 import org.json.JSONObject
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -19,19 +18,15 @@ import java.util.Locale
  *
  * Destinations (in priority order):
  *   1. SAF tree URI (chosen by the user in Settings) — most flexible.
- *   2. MediaStore Downloads/Documents/Alamal — default for Android 10+.
+ *   2. MediaStore Documents/Alamal — default for Android 10+.
  *
- * Files:
- *   - Auto:   alamal_auto.json / alamal_auto.enc  (replaced each time)
- *   - Manual: alamal_YYYY-MM-DD_HH-mm.json / .enc
+ * All DB-touching functions are suspend — call them from a coroutine.
  */
 class BackupManager(private val context: Context) {
 
     private val db = AppDatabase.get(context)
 
-    // ---------- Serialization ----------
-
-    fun buildPayload(): BackupPayload {
+    suspend fun buildPayload(): BackupPayload {
         val workDays = db.workDayDao().getAllForBackup()
         val allBreaks = workDays.flatMap { db.breakDao().getForDay(it.id) }
         val remotes = db.remoteWorkDao().getAllForBackup()
@@ -55,20 +50,11 @@ class BackupManager(private val context: Context) {
         return BackupPayload.fromJson(JSONObject(text))
     }
 
-    // ---------- Writing ----------
-
     sealed class WriteResult {
         data class Success(val uri: Uri, val displayName: String, val sizeBytes: Int) : WriteResult()
         data class Failure(val message: String) : WriteResult()
     }
 
-    /**
-     * Write the given payload.
-     * @param manual when true, uses a timestamped filename; otherwise replaces alamal_auto.*
-     * @param encrypted when true, wraps with AES-GCM and uses .enc extension
-     * @param password required when encrypted == true
-     * @param safTreeUri user-chosen folder (from Settings); if null, uses MediaStore
-     */
     fun writeBackup(
         payload: BackupPayload,
         manual: Boolean,
@@ -115,7 +101,6 @@ class BackupManager(private val context: Context) {
             MediaStore.Files.getContentUri("external")
         }
 
-        // Delete an existing auto file with the same name to actually replace it.
         try {
             val projection = arrayOf(MediaStore.Downloads._ID, MediaStore.Downloads.DISPLAY_NAME)
             val selection = "${MediaStore.Downloads.DISPLAY_NAME} = ?"
@@ -127,7 +112,7 @@ class BackupManager(private val context: Context) {
                 }
             }
         } catch (_: Throwable) {
-            // Non-fatal: continuing may create a duplicate or fail on write.
+            // Non-fatal.
         }
 
         val values = ContentValues().apply {
@@ -164,7 +149,6 @@ class BackupManager(private val context: Context) {
             return WriteResult.Failure("لا توجد صلاحية كتابة في المجلد المختار")
         }
 
-        // Replace existing file with same name.
         dir.findFile(fileName)?.delete()
 
         val file = dir.createFile(mimeType(fileName), fileName)
@@ -183,18 +167,11 @@ class BackupManager(private val context: Context) {
     private fun mimeType(fileName: String): String =
         if (fileName.endsWith(".enc")) "application/octet-stream" else "application/json"
 
-    // ---------- Reading / Restoring ----------
-
     sealed class RestoreResult {
         data class Success(val payload: BackupPayload) : RestoreResult()
         data class Failure(val message: String) : RestoreResult()
     }
 
-    /**
-     * Reads a backup file from the given URI.
-     * If the file starts with our magic header, it is treated as encrypted and
-     * the password is required.
-     */
     fun readBackup(uri: Uri, password: String?): RestoreResult {
         val bytes: ByteArray = try {
             context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
@@ -221,15 +198,10 @@ class BackupManager(private val context: Context) {
         }
     }
 
-    /**
-     * Replaces ALL app data with the contents of the payload.
-     * Caller must confirm with the user before calling this.
-     */
-    fun restoreIntoDatabase(payload: BackupPayload): RestoreResult {
+    suspend fun restoreIntoDatabase(payload: BackupPayload): RestoreResult {
         return try {
             db.clearAllTables()
 
-            // Insert periods first (no FK dependency), then work days, then breaks.
             payload.periods.forEach { p -> db.periodDao().insert(p) }
             payload.workDays.forEach { d -> db.workDayDao().insert(d) }
             payload.breaks.forEach { b -> db.breakDao().insert(b) }
@@ -242,16 +214,13 @@ class BackupManager(private val context: Context) {
         }
     }
 
-    /** Find the auto backup file in the given SAF tree or Documents/Alamal. */
     fun findAutoBackup(safTreeUri: Uri?): Uri? {
         if (safTreeUri != null) {
             val dir = DocumentFile.fromTreeUri(context, safTreeUri) ?: return null
-            // Prefer .enc if present.
             dir.findFile("alamal_auto.enc")?.let { return it.uri }
             dir.findFile("alamal_auto.json")?.let { return it.uri }
             return null
         }
-        // Fall back to scanning MediaStore for the two known names.
         val names = listOf("alamal_auto.enc", "alamal_auto.json")
         val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
