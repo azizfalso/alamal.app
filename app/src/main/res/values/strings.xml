@@ -34,7 +34,7 @@
     <string name="settings_theme_dark">داكن</string>
     <string name="settings_color">لون التطبيق</string>
     <string name="settings_color_custom">لون مخصّص (Hex)</string>
-    <string name="settings_color_custom_hint">مثال: #4D6BFE</string>
+    <string name="settings_color_custom_hint">مثال: #8B7548</string>
     <string name="settings_color_apply">تطبيق اللون</string>
     <string name="settings_color_invalid">صيغة اللون غير صحيحة</string>
 
@@ -57,7 +57,7 @@
 
     <string name="settings_section_about">حول</string>
     <string name="settings_version">الإصدار</string>
-    <string name="settings_part1_note">نسخة قيد التطوير. الوظائف الأساسية والدُفعات والأرشيف والنسخ الاحتياطي مفعّلة.</string>
+    <string name="settings_part1_note">الإصدار 2.0 — واجهة محسّنة بألوان دافئة، بطاقة ملخص موحّدة، وشريط إجراءات سريع. القفل والنسخ الاحتياطي المشفّر وتصدير CSV والإشعارات مفعّلة جميعها.</string>
 
     <string name="placeholder_title">قريبًا</string>
     <string name="placeholder_body">هذا القسم قيد الإنشاء وسيُضاف في المرحلة القادمة.</string>

@@ -15,7 +15,7 @@ val keystoreProperties = Properties().apply {
 
 val versionCodeOverride: Int =
     (project.findProperty("versionCodeOverride") as String?)?.toIntOrNull() ?: 1
-val versionNameOverride: String = "1.0.$versionCodeOverride"
+val versionNameOverride: String = "2.0.$versionCodeOverride"
 
 android {
     namespace = "com.alamal.app"

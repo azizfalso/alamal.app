@@ -2,6 +2,7 @@ package com.alamal.app.ui.screens.home
 
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Insights
@@ -31,9 +30,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -81,16 +77,15 @@ fun HomeScreen(
     val vm: HomeViewModel = viewModel(factory = HomeViewModel.factory(context))
     val state by vm.state.collectAsState()
     var showShareDialog by remember { mutableStateOf(false) }
-    var fabExpanded by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // ---- Scrollable content ----
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 14.dp)
-                .navigationBarsPadding()
-                .padding(bottom = 96.dp),
+                .padding(bottom = 84.dp), // reserve space for the action bar
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
@@ -123,20 +118,14 @@ fun HomeScreen(
                 ClockInCard(onClockIn = { vm.clockIn() })
             }
 
-            // ---- Secondary actions: 3 compact buttons in one row ----
+            // ---- Secondary actions: 2 compact buttons in one row ----
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 CompactActionButton(
-                    icon = Icons.Default.Schedule,
-                    label = "إضافة يدويًا",
-                    onClick = { onOpenWorkDayForm(-1L) },
-                    modifier = Modifier.weight(1f),
-                )
-                CompactActionButton(
                     icon = Icons.Default.Share,
-                    label = "مشاركة",
+                    label = "مشاركة الملخص",
                     onClick = { showShareDialog = true },
                     modifier = Modifier.weight(1f),
                 )
@@ -171,73 +160,16 @@ fun HomeScreen(
             Spacer(Modifier.height(4.dp))
         }
 
-        // ---- Floating action button with dropdown menu ----
-        Box(
+        // ---- Fixed action bar sitting just above the bottom navigation ----
+        HomeActionBar(
+            onWorkDay = { onOpenWorkDayForm(-1L) },
+            onRemote = onOpenRemoteWorkForm,
+            onCredit = onOpenCreditForm,
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 96.dp),
-        ) {
-            FloatingActionButton(
-                onClick = { fabExpanded = true },
-                containerColor = LocalExtendedColors.current.accent,
-                contentColor = LocalExtendedColors.current.accentOn,
-                shape = CircleShape,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "إضافة سجل",
-                    modifier = Modifier.size(26.dp),
-                )
-            }
-
-            DropdownMenu(
-                expanded = fabExpanded,
-                onDismissRequest = { fabExpanded = false },
-            ) {
-                DropdownMenuItem(
-                    text = { Text("يوم عمل") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = LocalExtendedColors.current.accent,
-                        )
-                    },
-                    onClick = {
-                        fabExpanded = false
-                        onOpenWorkDayForm(-1L)
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("عمل عن بُعد") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Laptop,
-                            contentDescription = null,
-                            tint = LocalExtendedColors.current.accent,
-                        )
-                    },
-                    onClick = {
-                        fabExpanded = false
-                        onOpenRemoteWorkForm()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("كريدي") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.MoneyOff,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    },
-                    onClick = {
-                        fabExpanded = false
-                        onOpenCreditForm()
-                    },
-                )
-            }
-        }
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        )
     }
 
     if (showShareDialog) {
@@ -259,8 +191,87 @@ fun HomeScreen(
 }
 
 /**
+ * Fixed 3-button action bar (work day / remote / credit).
+ * Mirrors the visual language of the floating bottom navigation
+ * so it feels like a natural extension of it.
+ */
+@Composable
+private fun HomeActionBar(
+    onWorkDay: () -> Unit,
+    onRemote: () -> Unit,
+    onCredit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(18.dp)
+    val bg = MaterialTheme.colorScheme.surfaceContainerLow
+    val border = LocalExtendedColors.current.border
+
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(bg)
+            .border(1.dp, border, shape)
+            .padding(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        HomeActionItem(
+            icon = Icons.Default.Schedule,
+            label = "يوم عمل",
+            onClick = onWorkDay,
+            tint = LocalExtendedColors.current.accent,
+            modifier = Modifier.weight(1f),
+        )
+        HomeActionItem(
+            icon = Icons.Default.Laptop,
+            label = "عن بُعد",
+            onClick = onRemote,
+            tint = LocalExtendedColors.current.accent,
+            modifier = Modifier.weight(1f),
+        )
+        HomeActionItem(
+            icon = Icons.Default.MoneyOff,
+            label = "كريدي",
+            onClick = onCredit,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun HomeActionItem(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/**
  * Unified card: one big number (net balance) + 3 split cells below.
- * Replaces the old separate NetCard + SummaryCard to save ~450px of height.
  */
 @Composable
 private fun UnifiedSummaryCard(
@@ -381,7 +392,6 @@ private fun VerticalDividerLine(color: Color) {
 
 /**
  * Dashed-border clock-in card — quick action, unfilled state.
- * Compressed to ~72dp height.
  */
 @Composable
 private fun ClockInCard(onClockIn: () -> Unit) {
