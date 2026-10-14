@@ -4,7 +4,6 @@ import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +26,10 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +57,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.alamal.app.R
 import com.alamal.app.data.AppRepository
+import com.alamal.app.data.UndoAction
 import com.alamal.app.data.prefs.SettingsRepository
 import com.alamal.app.ui.screens.archive.ArchiveScreen
 import com.alamal.app.ui.screens.credit.CreditFormScreen
@@ -86,6 +90,9 @@ fun AppNavigation(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val repo = remember { AppRepository.get(context) }
+
     val items = listOf(
         BottomNavItem(Routes.HOME, R.string.nav_home, Icons.Default.Home),
         BottomNavItem(Routes.RECORDS, R.string.nav_records, Icons.AutoMirrored.Filled.List),
@@ -108,11 +115,30 @@ fun AppNavigation(
         }
     }
 
+    // ---- Undo Snackbar pipeline ----
+    LaunchedEffect(Unit) {
+        repo.pendingUndo.collect { action ->
+            val message = when (action) {
+                is UndoAction.DeletedWorkDay -> "تم حذف يوم العمل"
+                is UndoAction.DeletedRemoteWork -> "تم حذف العمل عن بُعد"
+                is UndoAction.DeletedCredit -> "تم حذف الكريدي"
+            }
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = "تراجع",
+                withDismissAction = true,
+                duration = SnackbarDuration.Long,
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                repo.undoDelete(action)
+            }
+        }
+    }
+
     // Handle shortcut actions from the launcher icon.
     if (pendingShortcutAction != null) {
         LaunchedEffect(pendingShortcutAction.value) {
             val action = pendingShortcutAction.value ?: return@LaunchedEffect
-            val repo = AppRepository.get(context)
             val settingsRepo = SettingsRepository(context)
             when (action) {
                 "clock_in" -> {
@@ -138,11 +164,34 @@ fun AppNavigation(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = {
+            if (showBottomBar) {
+                FloatingBottomBar(
+                    items = items,
+                    currentRoute = currentRoute,
+                    onItemClick = { route ->
+                        if (currentRoute == route) return@FloatingBottomBar
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+    ) { padding ->
         NavHost(
             navController = navController,
             startDestination = Routes.HOME,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
         ) {
             composable(Routes.HOME) {
                 HomeScreen(
@@ -228,26 +277,6 @@ fun AppNavigation(
                 )
             }
         }
-
-        if (showBottomBar) {
-            FloatingBottomBar(
-                items = items,
-                currentRoute = currentRoute,
-                onItemClick = { route ->
-                    if (currentRoute == route) return@FloatingBottomBar
-                    navController.navigate(route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth(),
-            )
-        }
     }
 }
 
@@ -300,14 +329,8 @@ private fun FloatingNavItem(
     val accentOn = LocalExtendedColors.current.accentOn
     val muted = LocalExtendedColors.current.muted
 
-    val bgColor by animateColorAsState(
-        targetValue = if (selected) accent else Color.Transparent,
-        label = "nav_bg",
-    )
-    val contentColor by animateColorAsState(
-        targetValue = if (selected) accentOn else muted,
-        label = "nav_fg",
-    )
+    val bgColor = if (selected) accent else Color.Transparent
+    val contentColor = if (selected) accentOn else muted
 
     Row(
         modifier = Modifier

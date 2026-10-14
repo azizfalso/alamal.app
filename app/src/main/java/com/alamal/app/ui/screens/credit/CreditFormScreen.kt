@@ -14,6 +14,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -73,6 +75,7 @@ fun CreditFormScreen(
     var amountText by remember { mutableStateOf("") }
     var noteText by remember { mutableStateOf("") }
     var editingDate by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(itemId) {
         if (loaded) return@LaunchedEffect
@@ -102,10 +105,22 @@ fun CreditFormScreen(
                         )
                     }
                 },
+                actions = {
+                    if (currentId > 0L) {
+                        IconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "حذف",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
                     navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
         },
@@ -205,6 +220,8 @@ fun CreditFormScreen(
                     shape = RoundedCornerShape(14.dp),
                 ) { Text(stringResource(R.string.save)) }
             }
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 
@@ -236,6 +253,29 @@ fun CreditFormScreen(
         ) {
             DatePicker(state = dateState)
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("حذف السجل") },
+            text = { Text("سيتم حذف هذا السجل. ستحصل على 10 ثوانٍ للتراجع.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        scope.launch {
+                            val item = repo.getCredit(currentId)
+                            if (item != null) repo.deleteCreditWithUndo(item)
+                            onDone()
+                        }
+                    },
+                ) { Text("حذف", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("إلغاء") }
+            },
+        )
     }
 }
 

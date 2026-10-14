@@ -108,6 +108,14 @@ class HomeViewModel(
         }
     }
 
+    /** Quick clock-out: stop the running work session immediately. */
+    fun clockOutNow() {
+        viewModelScope.launch {
+            val open = repo.getOpenWorkDay() ?: return@launch
+            repo.setClockOut(open.id, System.currentTimeMillis())
+        }
+    }
+
     fun deleteWorkDay(id: Long) {
         viewModelScope.launch { repo.deleteWorkDay(id) }
     }

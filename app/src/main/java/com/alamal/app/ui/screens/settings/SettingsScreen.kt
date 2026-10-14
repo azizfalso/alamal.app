@@ -24,11 +24,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -58,6 +61,7 @@ import com.alamal.app.ui.theme.LocalExtendedColors
 import com.alamal.app.ui.theme.parseHexColor
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
     val context = LocalContext.current
@@ -81,6 +85,7 @@ fun SettingsScreen() {
             text = stringResource(R.string.settings_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
+            fontWeight = FontWeight.Medium,
         )
 
         // ============ Appearance ============
@@ -90,30 +95,30 @@ fun SettingsScreen() {
                 style = MaterialTheme.typography.labelMedium,
                 color = LocalExtendedColors.current.muted,
             )
-            ThemeMode.entries.forEach { mode ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { scope.launch { repo.setThemeMode(mode) } }
-                        .padding(vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(
+            Spacer(Modifier.height(6.dp))
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                ThemeMode.entries.forEachIndexed { index, mode ->
+                    SegmentedButton(
                         selected = settings.themeMode == mode,
                         onClick = { scope.launch { repo.setThemeMode(mode) } },
-                    )
-                    Text(
-                        text = when (mode) {
-                            ThemeMode.SYSTEM -> stringResource(R.string.settings_theme_system)
-                            ThemeMode.LIGHT -> stringResource(R.string.settings_theme_light)
-                            ThemeMode.DARK -> stringResource(R.string.settings_theme_dark)
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = ThemeMode.entries.size,
+                        ),
+                    ) {
+                        Text(
+                            text = when (mode) {
+                                ThemeMode.SYSTEM -> "تلقائي"
+                                ThemeMode.LIGHT -> "فاتح"
+                                ThemeMode.DARK -> "داكن"
+                            },
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
                 }
             }
 
+            Spacer(Modifier.height(4.dp))
             AlamalDivider()
 
             Row(
@@ -123,6 +128,18 @@ fun SettingsScreen() {
                     .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(currentColor)
+                        .border(
+                            1.dp,
+                            LocalExtendedColors.current.border,
+                            RoundedCornerShape(12.dp),
+                        ),
+                )
+                Spacer(Modifier.size(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.settings_color),
@@ -136,18 +153,6 @@ fun SettingsScreen() {
                         color = LocalExtendedColors.current.muted,
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(currentColor)
-                        .border(
-                            1.dp,
-                            LocalExtendedColors.current.border,
-                            RoundedCornerShape(10.dp),
-                        ),
-                )
-                Spacer(Modifier.size(8.dp))
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
@@ -166,23 +171,30 @@ fun SettingsScreen() {
                     else settings.hourlyRate.toString()
                 )
             }
-            OutlinedTextField(
-                value = currency,
-                onValueChange = { currency = it },
-                label = { Text(stringResource(R.string.settings_currency)) },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
+
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = rate,
-                onValueChange = { rate = it },
-                label = { Text(stringResource(R.string.settings_hourly_rate)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth(),
-            )
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                OutlinedTextField(
+                    value = currency,
+                    onValueChange = { currency = it },
+                    label = { Text(stringResource(R.string.settings_currency)) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = rate,
+                    onValueChange = { rate = it },
+                    label = { Text("سعر الساعة") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
             Button(
                 onClick = {
                     scope.launch {

@@ -13,10 +13,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -41,6 +40,9 @@ import com.alamal.app.data.backup.BackupPayload
 import com.alamal.app.data.backup.BackupPasswordHolder
 import com.alamal.app.data.prefs.AppSettings
 import com.alamal.app.data.prefs.SettingsRepository
+import com.alamal.app.ui.components.AlamalCard
+import com.alamal.app.ui.components.AlamalDivider
+import com.alamal.app.ui.theme.LocalExtendedColors
 import kotlinx.coroutines.launch
 
 @Composable
@@ -154,153 +156,172 @@ fun BackupSettingsSection() {
         if (uri != null) startRestoreFlow(uri)
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
-        Column(
+    AlamalCard {
+        Text(
+            text = "النسخ الاحتياطي",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = LocalExtendedColors.current.accent,
+        )
+        AlamalDivider()
+
+        // Auto backup toggle
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .clickable {
+                    scope.launch { settingsRepo.setAutoBackupEnabled(!settings.autoBackupEnabled) }
+                },
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "النسخ الاحتياطي",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
+            Switch(
+                checked = settings.autoBackupEnabled,
+                onCheckedChange = {
+                    scope.launch { settingsRepo.setAutoBackupEnabled(it) }
+                },
             )
-
-            // Auto backup toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        scope.launch { settingsRepo.setAutoBackupEnabled(!settings.autoBackupEnabled) }
-                    },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Switch(
-                    checked = settings.autoBackupEnabled,
-                    onCheckedChange = {
-                        scope.launch { settingsRepo.setAutoBackupEnabled(it) }
-                    },
+            Column(modifier = Modifier.padding(start = 12.dp)) {
+                Text(
+                    text = "نسخة تلقائية بعد كل تعديل",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                Column(modifier = Modifier.padding(start = 12.dp)) {
-                    Text("نسخة تلقائية بعد كل تعديل")
-                    Text(
-                        text = "يُستبدل ملف واحد فقط (alamal_auto) ولا يمس النسخ اليدوية",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            // Encryption toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        if (settings.backupEncrypted) {
-                            scope.launch { settingsRepo.setBackupEncrypted(false) }
-                        } else {
-                            showEncryptionDialog = true
-                        }
-                    },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Switch(
-                    checked = settings.backupEncrypted,
-                    onCheckedChange = { checked ->
-                        if (checked) showEncryptionDialog = true
-                        else scope.launch { settingsRepo.setBackupEncrypted(false) }
-                    },
+                Text(
+                    text = "يُستبدل ملف واحد فقط (alamal_auto) ولا يمس النسخ اليدوية",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LocalExtendedColors.current.muted,
                 )
-                Column(modifier = Modifier.padding(start = 12.dp)) {
-                    Text("تشفير النسخ الاحتياطية")
-                    Text(
-                        text = if (settings.backupEncrypted && BackupPasswordHolder.has())
-                            "مُفعَّل — كلمة المرور محفوظة لهذه الجلسة"
-                        else if (settings.backupEncrypted)
-                            "مُفعَّل — لكن كلمة المرور غير محفوظة حاليًا، أعد إدخالها"
-                        else "غير مُفعَّل",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
-
-            if (settings.backupEncrypted && !BackupPasswordHolder.has()) {
-                OutlinedButton(
-                    onClick = { showEncryptionDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("إدخال كلمة مرور التشفير لهذه الجلسة") }
-            }
-
-            // SAF folder
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = { folderLauncher.launch(null) },
-                    modifier = Modifier.weight(1f),
-                ) { Text("اختيار مجلد الحفظ") }
-                if (settings.backupTreeUri.isNotEmpty()) {
-                    OutlinedButton(
-                        onClick = { scope.launch { settingsRepo.setBackupTreeUri("") } },
-                    ) { Text("مسح") }
-                }
-            }
-            Text(
-                text = if (settings.backupTreeUri.isEmpty())
-                    "المكان الافتراضي: Documents/Alamal"
-                else "المجلد المختار: ${settings.backupTreeUri}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            Button(
-                onClick = { performWrite(manual = true) },
-                enabled = !busy,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("نسخة احتياطية جديدة الآن") }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        val treeUri = settings.backupTreeUri
-                            .takeIf { it.isNotEmpty() }
-                            ?.let { runCatching { Uri.parse(it) }.getOrNull() }
-                        val uri = manager.findAutoBackup(treeUri)
-                        if (uri == null) toast("لا توجد نسخة تلقائية بعد.")
-                        else startRestoreFlow(uri)
-                    },
-                    enabled = !busy,
-                    modifier = Modifier.weight(1f),
-                ) { Text("استعادة من التلقائية") }
-
-                OutlinedButton(
-                    onClick = {
-                        fileLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
-                    },
-                    enabled = !busy,
-                    modifier = Modifier.weight(1f),
-                ) { Text("استعادة من ملف") }
-            }
-
-            Text(
-                text = "الاستعادة تُلغي كل البيانات الحالية وتستبدلها بمحتوى النسخة. " +
-                    "لا تشارك كلمة مرور التشفير مع أحد.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
+
+        AlamalDivider()
+
+        // Encryption toggle
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    if (settings.backupEncrypted) {
+                        scope.launch { settingsRepo.setBackupEncrypted(false) }
+                    } else {
+                        showEncryptionDialog = true
+                    }
+                },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Switch(
+                checked = settings.backupEncrypted,
+                onCheckedChange = { checked ->
+                    if (checked) showEncryptionDialog = true
+                    else scope.launch { settingsRepo.setBackupEncrypted(false) }
+                },
+            )
+            Column(modifier = Modifier.padding(start = 12.dp)) {
+                Text(
+                    text = "تشفير النسخ الاحتياطية",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = when {
+                        settings.backupEncrypted && BackupPasswordHolder.has() ->
+                            "مُفعَّل — كلمة المرور محفوظة لهذه الجلسة"
+                        settings.backupEncrypted ->
+                            "مُفعَّل — لكن كلمة المرور غير محفوظة حاليًا"
+                        else -> "غير مُفعَّل"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LocalExtendedColors.current.muted,
+                )
+            }
+        }
+
+        if (settings.backupEncrypted && !BackupPasswordHolder.has()) {
+            OutlinedButton(
+                onClick = { showEncryptionDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) { Text("إدخال كلمة مرور التشفير لهذه الجلسة") }
+        }
+
+        // SAF folder
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = { folderLauncher.launch(null) },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) { Text("اختيار مجلد الحفظ") }
+            if (settings.backupTreeUri.isNotEmpty()) {
+                OutlinedButton(
+                    onClick = { scope.launch { settingsRepo.setBackupTreeUri("") } },
+                    modifier = Modifier.height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) { Text("مسح") }
+            }
+        }
+        Text(
+            text = if (settings.backupTreeUri.isEmpty())
+                "المكان الافتراضي: Documents/Alamal"
+            else "المجلد المختار: ${settings.backupTreeUri}",
+            style = MaterialTheme.typography.bodySmall,
+            color = LocalExtendedColors.current.muted,
+        )
+
+        Spacer(Modifier.height(4.dp))
+
+        Button(
+            onClick = { performWrite(manual = true) },
+            enabled = !busy,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(14.dp),
+        ) { Text("نسخة احتياطية جديدة الآن") }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = {
+                    val treeUri = settings.backupTreeUri
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { runCatching { Uri.parse(it) }.getOrNull() }
+                    val uri = manager.findAutoBackup(treeUri)
+                    if (uri == null) toast("لا توجد نسخة تلقائية بعد.")
+                    else startRestoreFlow(uri)
+                },
+                enabled = !busy,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) { Text("استعادة من التلقائية") }
+
+            OutlinedButton(
+                onClick = {
+                    fileLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
+                },
+                enabled = !busy,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) { Text("استعادة من ملف") }
+        }
+
+        Text(
+            text = "الاستعادة تُلغي كل البيانات الحالية وتستبدلها بمحتوى النسخة. لا تشارك كلمة مرور التشفير مع أحد.",
+            style = MaterialTheme.typography.bodySmall,
+            color = LocalExtendedColors.current.muted,
+        )
     }
 
     // ---- Encryption password dialog ----
@@ -418,6 +439,7 @@ private fun PasswordDialog(
                     label = { Text("كلمة المرور") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (requireConfirm) {
@@ -427,6 +449,7 @@ private fun PasswordDialog(
                         label = { Text("تأكيد كلمة المرور") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -449,3 +472,41 @@ private fun PasswordDialog(
         },
     )
 }
+```
+
+## ما تغيّر
+
+| العنصر ↕▾ | قبل ↕▾ | بعد ↕▾ |
+|---|---|---|
+| −**إطار القسم** | `Card` عادية بحواف افتراضية | `AlamalCard` بحواف 16dp وحدود كريمية |
+| −**عنوان القسم** | `primary` افتراضي | `LocalExtendedColors.current.accent` (Terracotta) |
+| −**الفاصل** | لا يوجد | `AlamalDivider` بين الأزرار الرئيسية |
+| −**حقول الإدخال** | بدون شكل | بحواف 12dp |
+| −**الأزرار** | ارتفاع افتراضي | 48dp بحواف 14dp |
+| −**النصوص التوضيحية** | `onSurfaceVariant` باهت | `LocalExtendedColors.current.muted` (Olive Gray) |
+| −**الأزرار الثلاثية** | عرض كامل | عرض كامل بحواف موحّدة 14dp |
+⚙
+
+## تحققت قبل الإرسال
+
+- ✅ الملف مكتمل، ينتهي بـ `}` وحده.
+- ✅ كل الاستيرادات مستخدمة.
+- ✅ لا تغيير على الوظائف — نفس الأزرار ونفس الحوارات.
+- ✅ `AlamalCard` و`AlamalDivider` مستوردان.
+- ✅ `LocalExtendedColors` مستورد.
+- ✅ التوقيع `BackupSettingsSection()` بدون وسائط لم يتغير.
+
+## الخطوة
+
+**استبدل** `app/src/main/java/com/alamal/app/ui/screens/settings/BackupSettingsSection.kt` — احذف القديم أولًا ثم الصق الجديد.
+
+**Sync + Push** — البناء سيبدأ تلقائيًا. أرسل النتيجة.
+
+---
+
+## 🎯 ما بقي بعد هذا
+
+بعد نجاح هذا البناء، سيكون **كل المشروع محدّثًا بأسلوب Claude**. البقية لا شيء إلا:
+
+- **اختبار التطبيق** وتجربة الشاشات.
+- **تحسينات اختيارية**: تصدير CSV، بحث في السجلات، Onboarding.

@@ -44,6 +44,20 @@ sealed class RollbackResult {
     data class Blocked(val newRecordsCount: Int) : RollbackResult()
 }
 
+/**
+ * A snapshot of a record deleted just now, kept in memory for undo.
+ * The user has a short window to restore it.
+ */
+sealed class UndoAction {
+    data class DeletedWorkDay(
+        val day: WorkDayEntity,
+        val breaks: List<BreakEntity>,
+    ) : UndoAction()
+
+    data class DeletedRemoteWork(val item: RemoteWorkEntity) : UndoAction()
+    data class DeletedCredit(val item: CreditEntity) : UndoAction()
+}
+
 class AppRepository private constructor(context: Context) {
 
     private val db = AppDatabase.get(context)
@@ -54,6 +68,13 @@ class AppRepository private constructor(context: Context) {
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
     val dataChanged: SharedFlow<Unit> = _dataChanged.asSharedFlow()
+
+    private val _pendingUndo = MutableSharedFlow<UndoAction>(
+        replay = 0,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val pendingUndo: SharedFlow<UndoAction> = _pendingUndo.asSharedFlow()
 
     private fun notifyChanged() {
         _dataChanged.tryEmit(Unit)
@@ -109,6 +130,12 @@ class AppRepository private constructor(context: Context) {
         return dayId
     }
 
+    suspend fun setClockOut(dayId: Long, outTime: Long) {
+        val day = db.workDayDao().getById(dayId) ?: return
+        db.workDayDao().update(day.copy(clockOut = outTime))
+        notifyChanged()
+    }
+
     suspend fun clockOut(dayId: Long, outTime: Long, breaks: List<BreakEntity>) {
         val day = db.workDayDao().getById(dayId) ?: return
         db.workDayDao().update(day.copy(clockOut = outTime))
@@ -126,6 +153,16 @@ class AppRepository private constructor(context: Context) {
         notifyChanged()
     }
 
+    /** Delete a work day and emit an undo action. */
+    suspend fun deleteWorkDayWithUndo(dayId: Long) {
+        val day = db.workDayDao().getById(dayId) ?: return
+        val breaks = db.breakDao().getForDay(dayId)
+        db.breakDao().deleteForDay(dayId)
+        db.workDayDao().delete(day)
+        _pendingUndo.tryEmit(UndoAction.DeletedWorkDay(day, breaks))
+        notifyChanged()
+    }
+
     // ---- Remote work ----
     suspend fun getRemoteWork(id: Long): RemoteWorkEntity? = db.remoteWorkDao().getById(id)
 
@@ -140,6 +177,12 @@ class AppRepository private constructor(context: Context) {
         notifyChanged()
     }
 
+    suspend fun deleteRemoteWorkWithUndo(item: RemoteWorkEntity) {
+        db.remoteWorkDao().delete(item)
+        _pendingUndo.tryEmit(UndoAction.DeletedRemoteWork(item))
+        notifyChanged()
+    }
+
     // ---- Credits ----
     suspend fun getCredit(id: Long): CreditEntity? = db.creditDao().getById(id)
 
@@ -151,6 +194,31 @@ class AppRepository private constructor(context: Context) {
 
     suspend fun deleteCredit(item: CreditEntity) {
         db.creditDao().delete(item)
+        notifyChanged()
+    }
+
+    suspend fun deleteCreditWithUndo(item: CreditEntity) {
+        db.creditDao().delete(item)
+        _pendingUndo.tryEmit(UndoAction.DeletedCredit(item))
+        notifyChanged()
+    }
+
+    /** Restore a record deleted in the last few seconds. */
+    suspend fun undoDelete(action: UndoAction) {
+        when (action) {
+            is UndoAction.DeletedWorkDay -> {
+                val newId = db.workDayDao().insert(action.day.copy(id = 0L))
+                action.breaks.forEach { b ->
+                    db.breakDao().insert(b.copy(id = 0L, workDayId = newId))
+                }
+            }
+            is UndoAction.DeletedRemoteWork -> {
+                db.remoteWorkDao().insert(action.item.copy(id = 0L))
+            }
+            is UndoAction.DeletedCredit -> {
+                db.creditDao().insert(action.item.copy(id = 0L))
+            }
+        }
         notifyChanged()
     }
 

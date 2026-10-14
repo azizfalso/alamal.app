@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -90,6 +91,7 @@ fun WorkDayFormScreen(
     var editingClockOut by remember { mutableStateOf(false) }
     var editingBreakIndex by remember { mutableStateOf<Int?>(null) }
     var editingBreakField by remember { mutableStateOf(0) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(dayId) {
         if (loaded) return@LaunchedEffect
@@ -137,10 +139,22 @@ fun WorkDayFormScreen(
                         )
                     }
                 },
+                actions = {
+                    if (currentDayId > 0L) {
+                        IconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "حذف",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
                     navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
         },
@@ -154,7 +168,6 @@ fun WorkDayFormScreen(
                 .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // ---- Times ----
             AlamalCard {
                 DateTimeRow(
                     label = "وقت الدخول",
@@ -169,7 +182,6 @@ fun WorkDayFormScreen(
                 )
             }
 
-            // ---- Breaks ----
             AlamalCard {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -180,6 +192,7 @@ fun WorkDayFormScreen(
                         text = "الاستراحات",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Medium,
                     )
                     if (breaks.isNotEmpty()) {
                         Text(
@@ -192,7 +205,7 @@ fun WorkDayFormScreen(
 
                 if (breaks.isEmpty()) {
                     Text(
-                        text = "لا توجد استراحات. أضف واحدة إن احتجت.",
+                        text = "لا توجد استراحات.",
                         style = MaterialTheme.typography.bodySmall,
                         color = LocalExtendedColors.current.muted,
                     )
@@ -229,7 +242,6 @@ fun WorkDayFormScreen(
                 }
             }
 
-            // ---- Note ----
             AlamalCard {
                 OutlinedTextField(
                     value = noteText,
@@ -241,12 +253,12 @@ fun WorkDayFormScreen(
                 )
             }
 
-            // ---- Live stats ----
             AlamalCard {
                 Text(
                     text = "النتيجة",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
                 )
                 AlamalDivider()
                 AlamalStatRow(
@@ -262,7 +274,6 @@ fun WorkDayFormScreen(
                 )
             }
 
-            // ---- Save / Cancel ----
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -351,6 +362,32 @@ fun WorkDayFormScreen(
                 },
             )
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("حذف يوم العمل") },
+            text = {
+                Text("سيتم حذف هذا اليوم مع كل استراحاته. ستحصل على 10 ثوانٍ للتراجع.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        scope.launch {
+                            repo.deleteWorkDayWithUndo(currentDayId)
+                            onDone()
+                        }
+                    },
+                ) {
+                    Text("حذف", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("إلغاء") }
+            },
+        )
     }
 }
 

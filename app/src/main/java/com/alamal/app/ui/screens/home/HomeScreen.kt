@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -85,7 +86,6 @@ fun HomeScreen(
             .padding(bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Header
         Column {
             Text(
                 text = "الفترة الحالية",
@@ -117,12 +117,15 @@ fun HomeScreen(
 
         val open = state.openWorkDay
         if (open != null) {
-            AtWorkCard(day = open, onClockOut = { onOpenWorkDayForm(open.id) })
+            AtWorkCard(
+                day = open,
+                onQuickStop = { vm.clockOutNow() },
+                onEditDetails = { onOpenWorkDayForm(open.id) },
+            )
         } else {
             ClockInCard(onClockIn = { vm.clockIn() })
         }
 
-        // Quick actions row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -159,7 +162,6 @@ fun HomeScreen(
             }
         }
 
-        // Secondary actions
         SecondaryAction(
             text = "إضافة يوم عمل يدويًا",
             onClick = { onOpenWorkDayForm(-1L) },
@@ -220,7 +222,6 @@ fun HomeScreen(
 @Composable
 private fun NetCard(net: Double, currency: String) {
     val accent = LocalExtendedColors.current.accent
-    val border = LocalExtendedColors.current.border
     val muted = LocalExtendedColors.current.muted
     val isNegative = net < -0.0001
 
@@ -414,7 +415,11 @@ private fun ClockInCard(onClockIn: () -> Unit) {
 }
 
 @Composable
-private fun AtWorkCard(day: WorkDayEntity, onClockOut: () -> Unit) {
+private fun AtWorkCard(
+    day: WorkDayEntity,
+    onQuickStop: () -> Unit,
+    onEditDetails: () -> Unit,
+) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -454,13 +459,26 @@ private fun AtWorkCard(day: WorkDayEntity, onClockOut: () -> Unit) {
         )
         Spacer(Modifier.height(4.dp))
         Button(
-            onClick = onClockOut,
+            onClick = onQuickStop,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
             shape = RoundedCornerShape(14.dp),
         ) {
-            Text("تسجيل وقت الخروج")
+            Text(
+                text = "إنهاء العمل الآن",
+                fontWeight = FontWeight.Medium,
+            )
+        }
+        TextButton(
+            onClick = onEditDetails,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = "تعديل التفاصيل (استراحات، وقت...)",
+                style = MaterialTheme.typography.labelMedium,
+                color = LocalExtendedColors.current.muted,
+            )
         }
     }
 }
