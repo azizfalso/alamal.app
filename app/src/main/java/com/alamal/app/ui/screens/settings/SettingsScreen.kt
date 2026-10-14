@@ -17,13 +17,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -50,8 +54,7 @@ import com.alamal.app.R
 import com.alamal.app.data.prefs.AppSettings
 import com.alamal.app.data.prefs.SettingsRepository
 import com.alamal.app.data.prefs.ThemeMode
-import com.alamal.app.ui.theme.ThemeColorPresets
-import com.alamal.app.ui.theme.isHexColorValid
+import com.alamal.app.ui.components.ColorPickerDialog
 import com.alamal.app.ui.theme.parseHexColor
 import kotlinx.coroutines.launch
 
@@ -61,6 +64,9 @@ fun SettingsScreen() {
     val repo = remember { SettingsRepository(context) }
     val scope = rememberCoroutineScope()
     val settings by repo.settings.collectAsState(initial = AppSettings.DEFAULT)
+
+    var showColorPicker by remember { mutableStateOf(false) }
+    val currentColor = parseHexColor(settings.appColorHex)
 
     Column(
         modifier = Modifier
@@ -110,61 +116,35 @@ fun SettingsScreen() {
                 text = stringResource(R.string.settings_color),
                 style = MaterialTheme.typography.titleSmall,
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ThemeColorPresets.take(5).forEach { preset ->
-                    ColorDot(
-                        color = parseHexColor(preset.hex),
-                        selected = settings.appColorHex.equals(preset.hex, ignoreCase = true),
-                        onClick = { scope.launch { repo.setAppColorHex(preset.hex) } },
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ThemeColorPresets.drop(5).forEach { preset ->
-                    ColorDot(
-                        color = parseHexColor(preset.hex),
-                        selected = settings.appColorHex.equals(preset.hex, ignoreCase = true),
-                        onClick = { scope.launch { repo.setAppColorHex(preset.hex) } },
-                    )
-                }
-            }
 
-            var customHex by remember { mutableStateOf("") }
-            var customError by remember { mutableStateOf(false) }
+            // Preview + "change" button — no hex input.
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                OutlinedTextField(
-                    value = customHex,
-                    onValueChange = {
-                        customHex = it
-                        customError = false
-                    },
-                    label = { Text(stringResource(R.string.settings_color_custom)) },
-                    placeholder = { Text(stringResource(R.string.settings_color_custom_hint)) },
-                    singleLine = true,
-                    isError = customError,
-                    modifier = Modifier.weight(1f),
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(currentColor)
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outline,
+                            shape = RoundedCornerShape(14.dp),
+                        ),
                 )
                 Button(
-                    onClick = {
-                        if (isHexColorValid(customHex)) {
-                            scope.launch { repo.setAppColorHex(customHex.trim()) }
-                            customHex = ""
-                        } else {
-                            customError = true
-                        }
-                    },
+                    onClick = { showColorPicker = true },
+                    modifier = Modifier.weight(1f),
                 ) {
-                    Text(stringResource(R.string.settings_color_apply))
+                    Icon(
+                        Icons.Default.Palette,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text("تغيير اللون")
                 }
             }
         }
@@ -238,6 +218,18 @@ fun SettingsScreen() {
             )
         }
     }
+
+    if (showColorPicker) {
+        ColorPickerDialog(
+            initialColor = currentColor,
+            onDismiss = { showColorPicker = false },
+            onConfirm = { picked ->
+                val hex = String.format("#%06X", 0xFFFFFF and picked.toArgb())
+                scope.launch { repo.setAppColorHex(hex) }
+                showColorPicker = false
+            },
+        )
+    }
 }
 
 @Suppress("DEPRECATION")
@@ -258,6 +250,7 @@ internal fun SectionCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         Column(
@@ -275,26 +268,6 @@ internal fun SectionCard(
             content()
         }
     }
-}
-
-@Composable
-private fun ColorDot(
-    color: Color,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(color)
-            .border(
-                width = if (selected) 3.dp else 1.dp,
-                color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
-                shape = CircleShape,
-            )
-            .clickable { onClick() }
-    )
 }
 
 private enum class PinAction { SET, CHANGE, REMOVE }
@@ -454,3 +427,10 @@ private fun PinDialog(
         },
     )
 }
+
+private fun Color.toArgb(): Int = android.graphics.Color.argb(
+    (alpha * 255).toInt(),
+    (red * 255).toInt(),
+    (green * 255).toInt(),
+    (blue * 255).toInt(),
+)

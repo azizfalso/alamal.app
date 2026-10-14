@@ -12,13 +12,23 @@ import com.alamal.app.data.db.entity.WorkDayEntity
 import com.alamal.app.data.prefs.AppSettings
 import com.alamal.app.data.prefs.SettingsRepository
 import com.alamal.app.domain.MoneyCalculator
+import com.alamal.app.util.DateFormatters
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import java.util.Calendar
 
-data class DayBar(val day: Int, val amount: Double)
+data class DayBar(val day: Int, val amount: Double, val minutes: Long)
+
+data class WeekStats(
+    val weekStart: Long,
+    val weekEnd: Long,
+    val label: String,
+    val days: List<DayBar>,       // always 7, Monday..Sunday
+    val totalMinutes: Long,
+    val totalAmount: Double,
+)
 
 data class StatsUiState(
     val loading: Boolean = true,
@@ -32,6 +42,7 @@ data class StatsUiState(
     val totalCredits: Double = 0.0,
     val net: Double = 0.0,
     val dailyBars: List<DayBar> = emptyList(),
+    val weeklyStats: List<WeekStats> = emptyList(),
     val currency: String = "DH",
     val canGoNext: Boolean = false,
 )
@@ -71,7 +82,8 @@ class StatsViewModel(
         var totalWages = 0.0
         var totalMinutes = 0L
         var daysCount = 0
-        val byDay = mutableMapOf<Int, Double>()
+        val byDayAmount = mutableMapOf<Int, Double>()
+        val byDayMinutes = mutableMapOf<Int, Long>()
 
         data.workDays.forEach { day ->
             if (inMonth(day.clockIn, year, month)) {
@@ -80,7 +92,8 @@ class StatsViewModel(
                 totalMinutes += stats.actualMinutes
                 if (day.clockOut != null) daysCount++
                 val d = dayOfMonth(day.clockIn)
-                byDay[d] = (byDay[d] ?: 0.0) + stats.wage
+                byDayAmount[d] = (byDayAmount[d] ?: 0.0) + stats.wage
+                byDayMinutes[d] = (byDayMinutes[d] ?: 0L) + stats.actualMinutes
             }
         }
 
@@ -89,7 +102,7 @@ class StatsViewModel(
             if (inMonth(r.date, year, month)) {
                 totalRemote += r.amount
                 val d = dayOfMonth(r.date)
-                byDay[d] = (byDay[d] ?: 0.0) + r.amount
+                byDayAmount[d] = (byDayAmount[d] ?: 0.0) + r.amount
             }
         }
 
@@ -98,13 +111,22 @@ class StatsViewModel(
             if (inMonth(c.date, year, month)) {
                 totalCredits += c.amount
                 val d = dayOfMonth(c.date)
-                byDay[d] = (byDay[d] ?: 0.0) - c.amount
+                byDayAmount[d] = (byDayAmount[d] ?: 0.0) - c.amount
             }
         }
 
         val net = totalWages + totalRemote - totalCredits
         val maxDay = daysInMonth(year, month)
-        val bars = (1..maxDay).map { d -> DayBar(d, byDay[d] ?: 0.0) }
+        val bars = (1..maxDay).map { d ->
+            DayBar(
+                day = d,
+                amount = byDayAmount[d] ?: 0.0,
+                minutes = byDayMinutes[d] ?: 0L,
+            )
+        }
+
+        // Weekly breakdown
+        val weekly = computeWeeklyStats(year, month, byDayAmount, byDayMinutes)
 
         val nowCal = Calendar.getInstance()
         val isCurrentMonth = nowCal.get(Calendar.YEAR) == year &&
@@ -122,6 +144,7 @@ class StatsViewModel(
             totalCredits = totalCredits,
             net = net,
             dailyBars = bars,
+            weeklyStats = weekly,
             currency = settings.currency,
             canGoNext = !isCurrentMonth,
         )
@@ -143,6 +166,70 @@ class StatsViewModel(
             (next.get(Calendar.YEAR) == now.get(Calendar.YEAR) &&
                 next.get(Calendar.MONTH) <= now.get(Calendar.MONTH))
         if (notBeyondNow) anchor.value = nextMs
+    }
+
+    private fun computeWeeklyStats(
+        year: Int,
+        month: Int,
+        byDayAmount: Map<Int, Double>,
+        byDayMinutes: Map<Int, Long>,
+    ): List<WeekStats> {
+        val result = mutableListOf<WeekStats>()
+        val firstOfMonth = Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val lastDay = firstOfMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+        // Iterate day by day, group by Monday-start week
+        val weeks = linkedMapOf<Long, MutableList<DayBar>>()
+        for (d in 1..lastDay) {
+            val c = (firstOfMonth.clone() as Calendar).apply {
+                set(Calendar.DAY_OF_MONTH, d)
+            }
+            val ms = c.timeInMillis
+            val wkStart = DateFormatters.weekStartMonday(ms)
+            val bar = DayBar(
+                day = d,
+                amount = byDayAmount[d] ?: 0.0,
+                minutes = byDayMinutes[d] ?: 0L,
+            )
+            weeks.getOrPut(wkStart) { mutableListOf() }.add(bar)
+        }
+
+        weeks.forEach { (wkStart, days) ->
+            // Build a 7-slot list (Mon..Sun)
+            val slots = MutableList<DayBar?>(7) { null }
+            days.forEach { bar ->
+                val c = (firstOfMonth.clone() as Calendar).apply {
+                    set(Calendar.DAY_OF_MONTH, bar.day)
+                }
+                // Calendar.DAY_OF_WEEK: Sun=1..Sat=7 ; we want Mon=0..Sun=6
+                val dow = c.get(Calendar.DAY_OF_WEEK)
+                val idx = (dow + 5) % 7
+                slots[idx] = bar
+            }
+            val filled = slots.mapIndexed { idx, s ->
+                s ?: DayBar(day = 0, amount = 0.0, minutes = 0L)
+            }
+            val wkEnd = DateFormatters.weekEndSunday(wkStart)
+            val totalMinutes = filled.sumOf { it.minutes }
+            val totalAmount = filled.sumOf { it.amount }
+            result += WeekStats(
+                weekStart = wkStart,
+                weekEnd = wkEnd,
+                label = "${DateFormatters.dateArabicShort(wkStart)} ← ${DateFormatters.dateArabicShort(wkEnd)}",
+                days = filled,
+                totalMinutes = totalMinutes,
+                totalAmount = totalAmount,
+            )
+        }
+        return result.sortedBy { it.weekStart }
     }
 
     private fun monthAnchor(ms: Long): Long {
