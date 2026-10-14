@@ -1,5 +1,6 @@
 package com.alamal.app.ui.screens.home
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Laptop
 import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,7 +32,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,10 +44,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alamal.app.data.db.entity.WorkDayEntity
+import com.alamal.app.ui.components.SummaryShareDialog
 import com.alamal.app.util.ArabicPlural
 import com.alamal.app.util.DateFormatters
 import com.alamal.app.util.MoneyFormat
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val PositiveGreen = Color(0xFF2E7D32)
 
@@ -55,8 +61,11 @@ fun HomeScreen(
     onOpenPayment: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val vm: HomeViewModel = viewModel(factory = HomeViewModel.factory(context))
     val state by vm.state.collectAsState()
+
+    var showShareDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -71,10 +80,7 @@ fun HomeScreen(
             fontWeight = FontWeight.SemiBold,
         )
 
-        NetCard(
-            net = state.netBalance,
-            currency = state.currency,
-        )
+        NetCard(net = state.netBalance, currency = state.currency)
 
         SummaryRow(
             totalMinutes = state.totalMinutes,
@@ -125,6 +131,15 @@ fun HomeScreen(
             Text("إضافة يوم عمل يدويًا")
         }
 
+        OutlinedButton(
+            onClick = { showShareDialog = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("مشاركة ملخص الفترة الحالية")
+        }
+
         Button(
             onClick = onOpenPayment,
             modifier = Modifier
@@ -137,6 +152,23 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(4.dp))
+    }
+
+    if (showShareDialog) {
+        SummaryShareDialog(
+            onDismiss = { showShareDialog = false },
+            onShare = { includeDetails ->
+                showShareDialog = false
+                scope.launch {
+                    val text = vm.buildCurrentSummaryText(includeDetails)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, text)
+                    }
+                    context.startActivity(Intent.createChooser(intent, "مشاركة الملخص"))
+                }
+            },
+        )
     }
 }
 

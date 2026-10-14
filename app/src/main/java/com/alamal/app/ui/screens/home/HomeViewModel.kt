@@ -12,6 +12,7 @@ import com.alamal.app.data.db.entity.WorkDayEntity
 import com.alamal.app.data.prefs.AppSettings
 import com.alamal.app.data.prefs.SettingsRepository
 import com.alamal.app.domain.MoneyCalculator
+import com.alamal.app.domain.SummaryShareBuilder
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -117,6 +118,16 @@ class HomeViewModel(
 
     fun deleteCredit(item: CreditEntity) {
         viewModelScope.launch { repo.deleteCredit(item) }
+    }
+
+    suspend fun buildCurrentSummaryText(includeDetails: Boolean): String {
+        val snapshot = repo.computeCurrentSnapshot()
+        val input = SummaryShareBuilder.fromSnapshot(snapshot)
+        return SummaryShareBuilder.build(
+            input = input,
+            currency = state.value.currency,
+            includeDetails = includeDetails,
+        )
     }
 
     companion object {

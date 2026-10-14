@@ -26,6 +26,9 @@ interface WorkDayDao {
     @Query("SELECT * FROM work_days WHERE periodId = :periodId ORDER BY clockIn ASC")
     suspend fun getByPeriod(periodId: Long): List<WorkDayEntity>
 
+    @Query("SELECT * FROM work_days ORDER BY clockIn ASC")
+    suspend fun getAllForBackup(): List<WorkDayEntity>
+
     @Query("SELECT * FROM work_days WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): WorkDayEntity?
 

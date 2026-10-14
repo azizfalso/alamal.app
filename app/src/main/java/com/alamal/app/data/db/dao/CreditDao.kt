@@ -23,6 +23,9 @@ interface CreditDao {
     @Query("SELECT * FROM credits WHERE periodId = :periodId ORDER BY date ASC")
     suspend fun getByPeriod(periodId: Long): List<CreditEntity>
 
+    @Query("SELECT * FROM credits ORDER BY date ASC")
+    suspend fun getAllForBackup(): List<CreditEntity>
+
     @Query("SELECT * FROM credits WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): CreditEntity?
 

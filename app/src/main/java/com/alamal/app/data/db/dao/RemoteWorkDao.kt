@@ -23,6 +23,9 @@ interface RemoteWorkDao {
     @Query("SELECT * FROM remote_works WHERE periodId = :periodId ORDER BY date ASC")
     suspend fun getByPeriod(periodId: Long): List<RemoteWorkEntity>
 
+    @Query("SELECT * FROM remote_works ORDER BY date ASC")
+    suspend fun getAllForBackup(): List<RemoteWorkEntity>
+
     @Query("SELECT * FROM remote_works WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): RemoteWorkEntity?
 

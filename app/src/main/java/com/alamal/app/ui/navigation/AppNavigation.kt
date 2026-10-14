@@ -33,6 +33,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.alamal.app.R
+import com.alamal.app.ui.screens.archive.ArchiveScreen
 import com.alamal.app.ui.screens.credit.CreditFormScreen
 import com.alamal.app.ui.screens.home.HomeScreen
 import com.alamal.app.ui.screens.payment.PaymentScreen
@@ -131,9 +132,7 @@ fun AppNavigation() {
             composable(Routes.RECORDS) {
                 PlaceholderScreen(title = stringResource(R.string.nav_records))
             }
-            composable(Routes.ARCHIVE) {
-                PlaceholderScreen(title = stringResource(R.string.nav_archive))
-            }
+            composable(Routes.ARCHIVE) { ArchiveScreen() }
             composable(Routes.SETTINGS) { SettingsScreen() }
 
             composable(Routes.PAYMENT) {
