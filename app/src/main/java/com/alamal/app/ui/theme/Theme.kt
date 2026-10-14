@@ -5,57 +5,109 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import com.alamal.app.data.prefs.ThemeMode
 
-private fun Color.tint(amount: Float): Color = lerp(this, Color.White, amount)
-private fun Color.shade(amount: Float): Color = lerp(this, Color.Black, amount)
+// ---------- Claude-inspired schemes (fixed, no Material You) ----------
 
-private fun lightSchemeFrom(seed: Color) = lightColorScheme(
-    primary = seed.shade(0.15f),
-    onPrimary = Color.White,
-    primaryContainer = seed.tint(0.78f),
-    onPrimaryContainer = seed.shade(0.55f),
+private val LightScheme = lightColorScheme(
+    // Brand / accent
+    primary = Terracotta,
+    onPrimary = Ivory,
+    primaryContainer = WarmSand,
+    onPrimaryContainer = NearBlack,
 
-    secondary = seed.shade(0.30f),
-    onSecondary = Color.White,
-    secondaryContainer = seed.tint(0.78f),
-    onSecondaryContainer = seed.shade(0.55f),
+    secondary = CharcoalWarm,
+    onSecondary = Ivory,
+    secondaryContainer = WarmSand,
+    onSecondaryContainer = NearBlack,
 
-    tertiary = seed.shade(0.40f),
-    onTertiary = Color.White,
-    tertiaryContainer = seed.tint(0.78f),
-    onTertiaryContainer = seed.shade(0.58f),
+    tertiary = Coral,
+    onTertiary = Ivory,
+    tertiaryContainer = WarmSand,
+    onTertiaryContainer = NearBlack,
 
-    surfaceTint = seed.shade(0.15f),
-    inversePrimary = seed.tint(0.40f),
+    // Errors
+    error = ErrorCrimson,
+    onError = Ivory,
+    errorContainer = Color(0xFFF2D9D9),
+    onErrorContainer = ErrorCrimson,
+
+    // Surfaces (light)
+    background = Parchment,
+    onBackground = NearBlack,
+    surface = Parchment,
+    onSurface = NearBlack,
+    surfaceVariant = WarmSand,
+    onSurfaceVariant = OliveGray,
+    surfaceTint = Terracotta,
+    inverseSurface = DarkSurface,
+    inverseOnSurface = Ivory,
+    inversePrimary = Coral,
+
+    // Containers (used by Cards)
+    surfaceContainerLowest = PureWhite,
+    surfaceContainerLow = Ivory,
+    surfaceContainer = Ivory,
+    surfaceContainerHigh = WarmSand,
+    surfaceContainerHighest = WarmSand,
+
+    // Borders / outlines
+    outline = RingWarm,
+    outlineVariant = BorderCream,
+
+    scrim = NearBlack,
 )
 
-private fun darkSchemeFrom(seed: Color) = darkColorScheme(
-    primary = seed.tint(0.35f),
-    onPrimary = seed.shade(0.75f),
-    primaryContainer = seed.shade(0.40f),
-    onPrimaryContainer = seed.tint(0.85f),
+private val DarkScheme = darkColorScheme(
+    primary = Coral,
+    onPrimary = NearBlack,
+    primaryContainer = DarkSurface,
+    onPrimaryContainer = Ivory,
 
-    secondary = seed.tint(0.45f),
-    onSecondary = seed.shade(0.75f),
-    secondaryContainer = seed.shade(0.40f),
-    onSecondaryContainer = seed.tint(0.85f),
+    secondary = WarmSilver,
+    onSecondary = NearBlack,
+    secondaryContainer = DarkSurface,
+    onSecondaryContainer = Ivory,
 
-    tertiary = seed.tint(0.50f),
-    onTertiary = seed.shade(0.75f),
-    tertiaryContainer = seed.shade(0.45f),
-    onTertiaryContainer = seed.tint(0.85f),
+    tertiary = Terracotta,
+    onTertiary = Ivory,
+    tertiaryContainer = DarkSurface,
+    onTertiaryContainer = Ivory,
 
-    surfaceTint = seed.tint(0.35f),
-    inversePrimary = seed.shade(0.15f),
+    error = Color(0xFFE57373),
+    onError = NearBlack,
+    errorContainer = Color(0xFF4A2828),
+    onErrorContainer = Color(0xFFFFDAD6),
+
+    background = DarkDeep,
+    onBackground = Ivory,
+    surface = DarkDeep,
+    onSurface = Ivory,
+    surfaceVariant = DarkSurface,
+    onSurfaceVariant = WarmSilver,
+    surfaceTint = Coral,
+    inverseSurface = Parchment,
+    inverseOnSurface = NearBlack,
+    inversePrimary = Terracotta,
+
+    surfaceContainerLowest = DarkDeep,
+    surfaceContainerLow = DarkSurface,
+    surfaceContainer = DarkSurface,
+    surfaceContainerHigh = DarkElevated,
+    surfaceContainerHighest = DarkElevated,
+
+    outline = DarkElevated,
+    outlineVariant = DarkSurface,
+
+    scrim = Color(0xFF000000),
 )
 
 @Composable
 fun AlamalTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    seedColor: Color = SeedBlue,
+    @Suppress("UNUSED_PARAMETER") seedColor: Color = Terracotta,
     content: @Composable () -> Unit,
 ) {
     val dark = when (themeMode) {
@@ -63,15 +115,22 @@ fun AlamalTheme(
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    val scheme = if (dark) darkSchemeFrom(seedColor) else lightSchemeFrom(seedColor)
-    MaterialTheme(
-        colorScheme = scheme,
-        typography = AlamalTypography,
-        content = content,
-    )
+    val scheme = if (dark) DarkScheme else LightScheme
+    val extended = if (dark) DarkExtendedColors else LightExtendedColors
+
+    CompositionLocalProvider(LocalExtendedColors provides extended) {
+        MaterialTheme(
+            colorScheme = scheme,
+            typography = AlamalTypography,
+            shapes = AlamalShapes,
+            content = content,
+        )
+    }
 }
 
-fun parseHexColor(hex: String, fallback: Color = SeedBlue): Color {
+// -------- Helpers retained for compatibility with Settings --------
+
+fun parseHexColor(hex: String, fallback: Color = Terracotta): Color {
     val cleaned = hex.trim().removePrefix("#")
     return try {
         val v = cleaned.toLong(16)
