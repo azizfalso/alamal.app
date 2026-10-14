@@ -16,9 +16,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -33,6 +36,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.alamal.app.R
+import com.alamal.app.data.AppRepository
+import com.alamal.app.data.prefs.SettingsRepository
 import com.alamal.app.ui.screens.archive.ArchiveScreen
 import com.alamal.app.ui.screens.credit.CreditFormScreen
 import com.alamal.app.ui.screens.home.HomeScreen
@@ -40,7 +45,10 @@ import com.alamal.app.ui.screens.payment.PaymentScreen
 import com.alamal.app.ui.screens.records.RecordsScreen
 import com.alamal.app.ui.screens.remote.RemoteWorkFormScreen
 import com.alamal.app.ui.screens.settings.SettingsScreen
+import com.alamal.app.ui.screens.stats.StatsScreen
 import com.alamal.app.ui.screens.workday.WorkDayFormScreen
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 private data class BottomNavItem(
     val route: String,
@@ -53,9 +61,12 @@ private val bottomRoutes = setOf(
 )
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    pendingShortcutAction: MutableState<String?>? = null,
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     val items = listOf(
         BottomNavItem(Routes.HOME, R.string.nav_home, Icons.Default.Home),
@@ -76,6 +87,36 @@ fun AppNavigation() {
         } else {
             lastBackPress = now
             Toast.makeText(context, R.string.press_back_again, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // ---- Handle shortcut actions ----
+    if (pendingShortcutAction != null) {
+        LaunchedEffect(pendingShortcutAction.value) {
+            val action = pendingShortcutAction.value ?: return@LaunchedEffect
+            val repo = AppRepository.get(context)
+            val settingsRepo = SettingsRepository(context)
+            when (action) {
+                "clock_in" -> {
+                    val open = repo.getOpenWorkDay()
+                    if (open == null) {
+                        val s = settingsRepo.settings.first()
+                        repo.clockIn(s.hourlyRate)
+                        Toast.makeText(context, "تم تسجيل الدخول", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "أنت بالفعل في العمل", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                "clock_out" -> {
+                    val open = repo.getOpenWorkDay()
+                    if (open != null) {
+                        navController.navigate(Routes.workDayForm(open.id))
+                    } else {
+                        Toast.makeText(context, "لا يوجد يوم عمل مفتوح", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            pendingShortcutAction.value = null
         }
     }
 
@@ -127,6 +168,9 @@ fun AppNavigation() {
                     onOpenPayment = {
                         navController.navigate(Routes.PAYMENT)
                     },
+                    onOpenStats = {
+                        navController.navigate(Routes.STATS)
+                    },
                 )
             }
             composable(Routes.RECORDS) {
@@ -141,6 +185,10 @@ fun AppNavigation() {
 
             composable(Routes.PAYMENT) {
                 PaymentScreen(onDone = { navController.popBackStack() })
+            }
+
+            composable(Routes.STATS) {
+                StatsScreen(onBack = { navController.popBackStack() })
             }
 
             composable(

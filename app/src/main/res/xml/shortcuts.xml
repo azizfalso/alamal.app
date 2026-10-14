@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_in"
+        android:shortcutId="clock_in"
+        android:shortcutLongLabel="@string/shortcut_clock_in_long"
+        android:shortcutShortLabel="@string/shortcut_clock_in_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.alamal.app.MainActivity"
+            android:targetPackage="com.alamal.app">
+            <extra
+                android:name="shortcut_action"
+                android:value="clock_in" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_out"
+        android:shortcutId="clock_out"
+        android:shortcutLongLabel="@string/shortcut_clock_out_long"
+        android:shortcutShortLabel="@string/shortcut_clock_out_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.alamal.app.MainActivity"
+            android:targetPackage="com.alamal.app">
+            <extra
+                android:name="shortcut_action"
+                android:value="clock_out" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>

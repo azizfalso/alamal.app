@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Laptop
 import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.Schedule
@@ -59,6 +60,7 @@ fun HomeScreen(
     onOpenRemoteWorkForm: () -> Unit,
     onOpenCreditForm: () -> Unit,
     onOpenPayment: () -> Unit,
+    onOpenStats: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -138,6 +140,15 @@ fun HomeScreen(
             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
             Text("مشاركة ملخص الفترة الحالية")
+        }
+
+        OutlinedButton(
+            onClick = onOpenStats,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Default.Insights, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("الإحصائيات الشهرية")
         }
 
         Button(

@@ -48,7 +48,6 @@ class AppRepository private constructor(context: Context) {
 
     private val db = AppDatabase.get(context)
 
-    // ---- Change notifications (used by auto-backup coordinator) ----
     private val _dataChanged = MutableSharedFlow<Unit>(
         replay = 0,
         extraBufferCapacity = 1,
@@ -60,12 +59,18 @@ class AppRepository private constructor(context: Context) {
         _dataChanged.tryEmit(Unit)
     }
 
-    // ---- Flows (current period) ----
+    // ---- Current period flows ----
     val currentWorkDays: Flow<List<WorkDayEntity>> = db.workDayDao().observeCurrent()
     val breaksForCurrentPeriod: Flow<List<BreakEntity>> = db.breakDao().observeForCurrentPeriod()
     val currentRemoteWorks: Flow<List<RemoteWorkEntity>> = db.remoteWorkDao().observeCurrent()
     val currentCredits: Flow<List<CreditEntity>> = db.creditDao().observeCurrent()
     val allPeriods: Flow<List<PeriodEntity>> = db.periodDao().observeAll()
+
+    // ---- All records (for stats) ----
+    val allWorkDays: Flow<List<WorkDayEntity>> = db.workDayDao().observeAll()
+    val allBreaks: Flow<List<BreakEntity>> = db.breakDao().observeAll()
+    val allRemoteWorks: Flow<List<RemoteWorkEntity>> = db.remoteWorkDao().observeAll()
+    val allCredits: Flow<List<CreditEntity>> = db.creditDao().observeAll()
 
     val carriedBalance: Flow<Double> = db.periodDao().observeAll().map { periods ->
         periods.firstOrNull()?.remaining ?: 0.0

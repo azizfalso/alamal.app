@@ -14,6 +14,9 @@ interface WorkDayDao {
     @Query("SELECT * FROM work_days WHERE periodId IS NULL ORDER BY clockIn DESC")
     fun observeCurrent(): Flow<List<WorkDayEntity>>
 
+    @Query("SELECT * FROM work_days ORDER BY clockIn DESC")
+    fun observeAll(): Flow<List<WorkDayEntity>>
+
     @Query("SELECT * FROM work_days WHERE periodId IS NULL AND clockOut IS NULL ORDER BY clockIn DESC LIMIT 1")
     fun observeOpen(): Flow<WorkDayEntity?>
 

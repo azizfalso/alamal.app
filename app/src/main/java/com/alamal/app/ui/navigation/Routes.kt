@@ -9,6 +9,7 @@ object Routes {
     const val REMOTE_WORK_FORM = "remote_work_form"
     const val CREDIT_FORM = "credit_form"
     const val PAYMENT = "payment"
+    const val STATS = "stats"
 
     const val ARG_DAY_ID = "dayId"
     const val ARG_ITEM_ID = "id"

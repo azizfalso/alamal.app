@@ -1,5 +1,6 @@
 package com.alamal.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,14 +29,16 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     private lateinit var settingsRepo: SettingsRepository
-
     private val isLocked = mutableStateOf<Boolean?>(null)
+    private val pendingShortcutAction = mutableStateOf<String?>(null)
     private var backgroundedAt = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         settingsRepo = SettingsRepository(applicationContext)
+
+        handleShortcutIntent(intent)
 
         lifecycleScope.launch {
             val s = settingsRepo.settings.first()
@@ -69,11 +72,26 @@ class MainActivity : ComponentActivity() {
                                     onUnlock = { isLocked.value = false },
                                 )
                             }
-                            else -> AppNavigation()
+                            else -> AppNavigation(
+                                pendingShortcutAction = pendingShortcutAction,
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleShortcutIntent(intent)
+    }
+
+    private fun handleShortcutIntent(intent: Intent?) {
+        val action = intent?.getStringExtra(EXTRA_SHORTCUT_ACTION) ?: return
+        if (action == SHORTCUT_CLOCK_IN || action == SHORTCUT_CLOCK_OUT) {
+            pendingShortcutAction.value = action
         }
     }
 
@@ -100,5 +118,8 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val LOCK_AFTER_MS = 30_000L
+        const val EXTRA_SHORTCUT_ACTION = "shortcut_action"
+        const val SHORTCUT_CLOCK_IN = "clock_in"
+        const val SHORTCUT_CLOCK_OUT = "clock_out"
     }
 }

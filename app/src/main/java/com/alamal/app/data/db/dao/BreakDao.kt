@@ -16,6 +16,9 @@ interface BreakDao {
     @Query("SELECT * FROM breaks WHERE workDayId IN (SELECT id FROM work_days WHERE periodId IS NULL)")
     fun observeForCurrentPeriod(): Flow<List<BreakEntity>>
 
+    @Query("SELECT * FROM breaks")
+    fun observeAll(): Flow<List<BreakEntity>>
+
     @Query("SELECT * FROM breaks WHERE workDayId = :workDayId ORDER BY startTime ASC")
     suspend fun getForDay(workDayId: Long): List<BreakEntity>
 

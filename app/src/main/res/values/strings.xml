@@ -57,10 +57,15 @@
 
     <string name="settings_section_about">حول</string>
     <string name="settings_version">الإصدار</string>
-    <string name="settings_part1_note">نسخة قيد التطوير. الوظائف المالية الأساسية والدُفعات مُفعَّلة، والأرشيف والنسخ الاحتياطي في المرحلة القادمة.</string>
+    <string name="settings_part1_note">نسخة قيد التطوير. الوظائف الأساسية والدُفعات والأرشيف والنسخ الاحتياطي مفعّلة.</string>
 
     <string name="placeholder_title">قريبًا</string>
     <string name="placeholder_body">هذا القسم قيد الإنشاء وسيُضاف في المرحلة القادمة.</string>
 
     <string name="press_back_again">اضغط رجوع مرة أخرى للخروج</string>
+
+    <string name="shortcut_clock_in_short">دخول</string>
+    <string name="shortcut_clock_in_long">تسجيل دخول العمل</string>
+    <string name="shortcut_clock_out_short">خروج</string>
+    <string name="shortcut_clock_out_long">تسجيل خروج العمل</string>
 </resources>
