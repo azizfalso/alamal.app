@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -19,11 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +29,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,11 +48,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.alamal.app.ui.components.AlamalCard
+import com.alamal.app.ui.components.AlamalDivider
+import com.alamal.app.ui.components.AlamalStatRow
+import com.alamal.app.ui.theme.LocalExtendedColors
 import com.alamal.app.util.ArabicPlural
 import com.alamal.app.util.MoneyFormat
-
-private val PositiveGreen = Color(0xFF2E7D32)
-private val NegativeRed = Color(0xFFB8322E)
 
 private val DayNamesAr = listOf("إث", "ثل", "أر", "خم", "جم", "سب", "أح")
 
@@ -80,8 +78,14 @@ fun StatsScreen(onBack: () -> Unit) {
                         )
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                ),
             )
         },
+        containerColor = MaterialTheme.colorScheme.background,
     ) { pad ->
         if (state.loading) {
             Box(
@@ -98,40 +102,44 @@ fun StatsScreen(onBack: () -> Unit) {
                 .fillMaxSize()
                 .padding(pad)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Month navigation
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-            ) {
+            AlamalCard(contentPadding = 6) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 6.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = { vm.goPrev() }) {
-                        Icon(Icons.Default.ChevronLeft, contentDescription = "الشهر السابق")
+                        Icon(
+                            Icons.Default.ChevronLeft,
+                            contentDescription = "الشهر السابق",
+                            tint = LocalExtendedColors.current.accent,
+                        )
                     }
                     Text(
                         text = state.monthLabel,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     IconButton(
                         onClick = { vm.goNext() },
                         enabled = state.canGoNext,
                     ) {
-                        Icon(Icons.Default.ChevronRight, contentDescription = "الشهر التالي")
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = "الشهر التالي",
+                            tint = if (state.canGoNext)
+                                LocalExtendedColors.current.accent
+                            else
+                                LocalExtendedColors.current.meta,
+                        )
                     }
                 }
             }
 
-            // Segmented tabs
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     selected = tab == 0,
@@ -150,6 +158,8 @@ fun StatsScreen(onBack: () -> Unit) {
             } else {
                 WeeklyTab(state)
             }
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
@@ -160,101 +170,58 @@ private fun OverviewTab(state: StatsUiState) {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        // Net card — big
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (state.net < -0.0001)
-                    MaterialTheme.colorScheme.errorContainer
-                else
-                    MaterialTheme.colorScheme.primaryContainer,
-            ),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = "صافي الشهر",
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = MoneyFormat.formatSigned(state.net, state.currency),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (state.net < -0.0001)
-                        MaterialTheme.colorScheme.error
-                    else PositiveGreen,
+        NetCard(net = state.net, currency = state.currency)
+
+        AlamalCard {
+            Text(
+                text = "ملخّص الشهر",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            AlamalDivider()
+            AlamalStatRow("أيام العمل", state.daysCount.toString())
+            AlamalStatRow("ساعات العمل", ArabicPlural.hoursMinutes(state.totalMinutes))
+            AlamalStatRow("أجور الساعات", MoneyFormat.format(state.totalWages, state.currency))
+            if (state.totalRemote > 0.0001) {
+                AlamalStatRow("منها عن بُعد", MoneyFormat.format(state.totalRemote, state.currency))
+            }
+            if (state.totalCredits > 0.0001) {
+                AlamalStatRow(
+                    "الكريدي",
+                    "- " + MoneyFormat.format(state.totalCredits, state.currency),
+                    valueColor = MaterialTheme.colorScheme.error,
                 )
             }
         }
 
-        // Stat grid
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        ) {
-            Column(
+        AlamalCard {
+            Text(
+                text = "المبالغ اليومية",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "الأعمدة الخضراء موجبة، والحمراء كريدي/سالب",
+                style = MaterialTheme.typography.bodySmall,
+                color = LocalExtendedColors.current.muted,
+            )
+            Spacer(Modifier.height(6.dp))
+            BarChart(
+                bars = state.dailyBars,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                    .height(160.dp),
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                StatRow("أيام العمل", state.daysCount.toString())
-                StatRow("ساعات العمل", ArabicPlural.hoursMinutes(state.totalMinutes))
-                StatRow("أجور الساعات", MoneyFormat.format(state.totalWages, state.currency))
-                if (state.totalRemote > 0.0001) {
-                    StatRow("منها عن بُعد", MoneyFormat.format(state.totalRemote, state.currency))
-                }
-                if (state.totalCredits > 0.0001) {
-                    StatRow(
-                        "الكريدي",
-                        "- " + MoneyFormat.format(state.totalCredits, state.currency),
-                        valueColor = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
-        }
-
-        // Daily bars
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
+                Text("1", style = MaterialTheme.typography.bodySmall)
                 Text(
-                    text = "المبالغ اليومية",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
+                    "${state.dailyBars.size}",
+                    style = MaterialTheme.typography.bodySmall,
                 )
-                BarChart(
-                    bars = state.dailyBars,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp),
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text("1", style = MaterialTheme.typography.bodySmall)
-                    Text(
-                        "${state.dailyBars.size}",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
             }
         }
     }
@@ -270,97 +237,80 @@ private fun WeeklyTab(state: StatsUiState) {
             Text(
                 text = "لا توجد بيانات لهذا الشهر.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = LocalExtendedColors.current.muted,
             )
             return
         }
-
         state.weeklyStats.forEachIndexed { index, week ->
-            WeekCard(
-                week = week,
-                index = index + 1,
-                currency = state.currency,
-            )
+            WeekCard(week = week, index = index + 1, currency = state.currency)
         }
     }
 }
 
 @Composable
 private fun WeekCard(week: WeekStats, index: Int, currency: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+    AlamalCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "الأسبوع $index",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = week.label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            HorizontalDivider()
-
-            // Totals
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
-                    Text(
-                        text = "الساعات",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = ArabicPlural.hoursMinutes(week.totalMinutes),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "المبلغ",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = MoneyFormat.formatSigned(week.totalAmount, currency),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (week.totalAmount < -0.0001)
-                            MaterialTheme.colorScheme.error
-                        else PositiveGreen,
-                    )
-                }
-            }
-
-            // 7 mini bars with day labels
-            MiniWeekBars(days = week.days, modifier = Modifier.fillMaxWidth())
+            Text(
+                text = "الأسبوع $index",
+                style = MaterialTheme.typography.titleMedium,
+                color = LocalExtendedColors.current.accent,
+            )
+            Text(
+                text = week.label,
+                style = MaterialTheme.typography.bodySmall,
+                color = LocalExtendedColors.current.muted,
+            )
         }
+
+        AlamalDivider()
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column {
+                Text(
+                    text = "الساعات",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LocalExtendedColors.current.muted,
+                )
+                Text(
+                    text = ArabicPlural.hoursMinutes(week.totalMinutes),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "الصافي",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LocalExtendedColors.current.muted,
+                )
+                Text(
+                    text = MoneyFormat.formatSigned(week.totalAmount, currency),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = if (week.totalAmount < -0.0001)
+                        MaterialTheme.colorScheme.error
+                    else LocalExtendedColors.current.success,
+                )
+            }
+        }
+
+        MiniWeekBars(days = week.days, modifier = Modifier.fillMaxWidth())
     }
 }
 
 @Composable
 private fun MiniWeekBars(days: List<DayBar>, modifier: Modifier = Modifier) {
     val maxAbs = days.maxOfOrNull { kotlin.math.abs(it.amount) } ?: 0.0
+    val successColor = LocalExtendedColors.current.success
     Column(modifier = modifier) {
         Canvas(
             modifier = Modifier
@@ -380,7 +330,7 @@ private fun MiniWeekBars(days: List<DayBar>, modifier: Modifier = Modifier) {
                 if (maxAbs > 0.0001) {
                     val ratio = kotlin.math.abs(bar.amount).toFloat() / maxAbs.toFloat()
                     val barH = (ratio * maxBarH).coerceAtLeast(2f)
-                    val color = if (bar.amount < -0.0001) NegativeRed else PositiveGreen
+                    val color = if (bar.amount < -0.0001) Color(0xFFB53333) else successColor
                     drawRoundRect(
                         color = color,
                         topLeft = Offset(x, zeroY - barH),
@@ -399,7 +349,7 @@ private fun MiniWeekBars(days: List<DayBar>, modifier: Modifier = Modifier) {
                     Text(
                         text = DayNamesAr.getOrElse(i) { "" },
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = LocalExtendedColors.current.meta,
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -409,35 +359,47 @@ private fun MiniWeekBars(days: List<DayBar>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun StatRow(
-    label: String,
-    value: String,
-    valueColor: Color = Color.Unspecified,
-    bold: Boolean = false,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+private fun NetCard(net: Double, currency: String) {
+    val accent = LocalExtendedColors.current.accent
+    val accentOn = LocalExtendedColors.current.accentOn
+    val isNegative = net < -0.0001
+    val bg = if (isNegative) MaterialTheme.colorScheme.errorContainer else accent
+    val fg = if (isNegative) MaterialTheme.colorScheme.error else accentOn
+    val labelColor = if (isNegative)
+        MaterialTheme.colorScheme.error.copy(alpha = 0.75f)
+    else accentOn.copy(alpha = 0.85f)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(bg)
+            .padding(horizontal = 24.dp, vertical = 28.dp),
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal,
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (bold) FontWeight.Bold else FontWeight.Medium,
-            color = if (valueColor == Color.Unspecified) MaterialTheme.colorScheme.onSurface else valueColor,
-        )
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "صافي الشهر",
+                style = MaterialTheme.typography.labelLarge,
+                color = labelColor,
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = MoneyFormat.formatSigned(net, currency),
+                style = MaterialTheme.typography.displaySmall,
+                color = fg,
+                fontWeight = FontWeight.Medium,
+            )
+        }
     }
 }
 
 @Composable
 private fun BarChart(bars: List<DayBar>, modifier: Modifier = Modifier) {
     val maxAbs = bars.maxOfOrNull { kotlin.math.abs(it.amount) } ?: 0.0
+    val successColor = LocalExtendedColors.current.success
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
@@ -466,14 +428,14 @@ private fun BarChart(bars: List<DayBar>, modifier: Modifier = Modifier) {
             if (barH > 0.5f) {
                 if (bar.amount >= 0) {
                     drawRoundRect(
-                        color = PositiveGreen,
+                        color = successColor,
                         topLeft = Offset(x, zeroY - barH),
                         size = Size(barW, barH),
                         cornerRadius = radius,
                     )
                 } else {
                     drawRoundRect(
-                        color = NegativeRed,
+                        color = Color(0xFFB53333),
                         topLeft = Offset(x, zeroY),
                         size = Size(barW, barH),
                         cornerRadius = radius,

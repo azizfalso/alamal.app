@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -20,12 +21,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -43,7 +41,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -54,7 +51,10 @@ import com.alamal.app.R
 import com.alamal.app.data.prefs.AppSettings
 import com.alamal.app.data.prefs.SettingsRepository
 import com.alamal.app.data.prefs.ThemeMode
+import com.alamal.app.ui.components.AlamalCard
+import com.alamal.app.ui.components.AlamalDivider
 import com.alamal.app.ui.components.ColorPickerDialog
+import com.alamal.app.ui.theme.LocalExtendedColors
 import com.alamal.app.ui.theme.parseHexColor
 import kotlinx.coroutines.launch
 
@@ -72,93 +72,93 @@ fun SettingsScreen() {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = 16.dp, vertical = 20.dp)
+            .navigationBarsPadding()
+            .padding(bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
             text = stringResource(R.string.settings_title),
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
         )
 
-        SectionCard(title = stringResource(R.string.settings_section_appearance)) {
+        // ============ Appearance ============
+        SettingsSection(title = stringResource(R.string.settings_section_appearance)) {
             Text(
                 text = stringResource(R.string.settings_theme_mode),
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.labelMedium,
+                color = LocalExtendedColors.current.muted,
             )
-            Column {
-                ThemeMode.entries.forEach { mode ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { scope.launch { repo.setThemeMode(mode) } }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = settings.themeMode == mode,
-                            onClick = { scope.launch { repo.setThemeMode(mode) } },
-                        )
-                        Text(
-                            text = when (mode) {
-                                ThemeMode.SYSTEM -> stringResource(R.string.settings_theme_system)
-                                ThemeMode.LIGHT -> stringResource(R.string.settings_theme_light)
-                                ThemeMode.DARK -> stringResource(R.string.settings_theme_dark)
-                            }
-                        )
-                    }
+            ThemeMode.entries.forEach { mode ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { scope.launch { repo.setThemeMode(mode) } }
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(
+                        selected = settings.themeMode == mode,
+                        onClick = { scope.launch { repo.setThemeMode(mode) } },
+                    )
+                    Text(
+                        text = when (mode) {
+                            ThemeMode.SYSTEM -> stringResource(R.string.settings_theme_system)
+                            ThemeMode.LIGHT -> stringResource(R.string.settings_theme_light)
+                            ThemeMode.DARK -> stringResource(R.string.settings_theme_dark)
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                 }
             }
 
-            HorizontalDivider()
-
-            Text(
-                text = stringResource(R.string.settings_color),
-                style = MaterialTheme.typography.titleSmall,
-            )
+            AlamalDivider()
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showColorPicker = true }
+                    .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_color),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "اضغط لاختيار لون جديد",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalExtendedColors.current.muted,
+                    )
+                }
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(currentColor)
                         .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outline,
-                            shape = RoundedCornerShape(14.dp),
+                            1.dp,
+                            LocalExtendedColors.current.border,
+                            RoundedCornerShape(10.dp),
                         ),
                 )
-                Button(
-                    onClick = { showColorPicker = true },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(
-                        Icons.Default.Palette,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    Text("تغيير اللون")
-                }
+                Spacer(Modifier.size(8.dp))
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = LocalExtendedColors.current.meta,
+                )
             }
         }
 
-        SectionCard(title = stringResource(R.string.settings_section_money)) {
+        // ============ Money ============
+        SettingsSection(title = stringResource(R.string.settings_section_money)) {
             var currency by remember(settings.currency) { mutableStateOf(settings.currency) }
-            OutlinedTextField(
-                value = currency,
-                onValueChange = { currency = it },
-                label = { Text(stringResource(R.string.settings_currency)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-
             var rate by remember(settings.hourlyRate) {
                 mutableStateOf(
                     if (settings.hourlyRate == settings.hourlyRate.toLong().toDouble())
@@ -167,14 +167,22 @@ fun SettingsScreen() {
                 )
             }
             OutlinedTextField(
+                value = currency,
+                onValueChange = { currency = it },
+                label = { Text(stringResource(R.string.settings_currency)) },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
                 value = rate,
                 onValueChange = { rate = it },
                 label = { Text(stringResource(R.string.settings_hourly_rate)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = {
                     scope.launch {
@@ -182,38 +190,53 @@ fun SettingsScreen() {
                         rate.toDoubleOrNull()?.let { repo.setHourlyRate(it) }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
             ) {
                 Text(stringResource(R.string.save))
             }
         }
 
+        // ============ Backup ============
         BackupSettingsSection()
 
-        SectionCard(title = stringResource(R.string.settings_section_security)) {
+        // ============ Security ============
+        SettingsSection(title = stringResource(R.string.settings_section_security)) {
             PinManager(repo = repo, currentPin = settings.pin)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.settings_lock_note),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = LocalExtendedColors.current.muted,
             )
         }
 
-        SectionCard(title = stringResource(R.string.settings_section_about)) {
+        // ============ About ============
+        SettingsSection(title = stringResource(R.string.settings_section_about)) {
             val versionName = rememberVersionName(context)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringResource(R.string.settings_version))
-                Text(versionName, fontWeight = FontWeight.Medium)
+                Text(
+                    text = stringResource(R.string.settings_version),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = versionName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = LocalExtendedColors.current.muted,
+                )
             }
-            Spacer(Modifier.height(8.dp))
+            AlamalDivider()
             Text(
                 text = stringResource(R.string.settings_part1_note),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = LocalExtendedColors.current.muted,
             )
         }
     }
@@ -231,6 +254,23 @@ fun SettingsScreen() {
     }
 }
 
+@Composable
+internal fun SettingsSection(
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    AlamalCard {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = LocalExtendedColors.current.accent,
+        )
+        Spacer(Modifier.height(2.dp))
+        content()
+    }
+}
+
 @Suppress("DEPRECATION")
 private fun rememberVersionName(context: Context): String {
     return try {
@@ -242,35 +282,7 @@ private fun rememberVersionName(context: Context): String {
     }
 }
 
-@Composable
-internal fun SectionCard(
-    title: String,
-    content: @Composable () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            content()
-        }
-    }
-}
-
 private enum class PinAction { SET, CHANGE, REMOVE }
-
 private enum class PinStage { CURRENT, NEW, CONFIRM }
 
 @Composable
@@ -285,20 +297,29 @@ private fun PinManager(
         if (currentPin.isEmpty()) {
             Button(
                 onClick = { action = PinAction.SET },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
             ) {
                 Text(stringResource(R.string.settings_lock_set))
             }
         } else {
             OutlinedButton(
                 onClick = { action = PinAction.CHANGE },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
             ) {
                 Text(stringResource(R.string.settings_lock_change))
             }
             OutlinedButton(
                 onClick = { action = PinAction.REMOVE },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
             ) {
                 Text(stringResource(R.string.settings_lock_remove))
             }

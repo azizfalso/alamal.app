@@ -19,13 +19,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import java.util.Calendar
 
-data class DayBar(val day: Int, val amount: Double, val minutes: Long)
+data class DayBar(
+    val day: Int,
+    val amount: Double,
+    val minutes: Long,
+)
 
 data class WeekStats(
     val weekStart: Long,
     val weekEnd: Long,
     val label: String,
-    val days: List<DayBar>,       // always 7, Monday..Sunday
+    val days: List<DayBar>,
     val totalMinutes: Long,
     val totalAmount: Double,
 )
@@ -125,7 +129,6 @@ class StatsViewModel(
             )
         }
 
-        // Weekly breakdown
         val weekly = computeWeeklyStats(year, month, byDayAmount, byDayMinutes)
 
         val nowCal = Calendar.getInstance()
@@ -186,7 +189,6 @@ class StatsViewModel(
         }
         val lastDay = firstOfMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
 
-        // Iterate day by day, group by Monday-start week
         val weeks = linkedMapOf<Long, MutableList<DayBar>>()
         for (d in 1..lastDay) {
             val c = (firstOfMonth.clone() as Calendar).apply {
@@ -203,18 +205,16 @@ class StatsViewModel(
         }
 
         weeks.forEach { (wkStart, days) ->
-            // Build a 7-slot list (Mon..Sun)
             val slots = MutableList<DayBar?>(7) { null }
             days.forEach { bar ->
                 val c = (firstOfMonth.clone() as Calendar).apply {
                     set(Calendar.DAY_OF_MONTH, bar.day)
                 }
-                // Calendar.DAY_OF_WEEK: Sun=1..Sat=7 ; we want Mon=0..Sun=6
                 val dow = c.get(Calendar.DAY_OF_WEEK)
                 val idx = (dow + 5) % 7
                 slots[idx] = bar
             }
-            val filled = slots.mapIndexed { idx, s ->
+            val filled = slots.map { s ->
                 s ?: DayBar(day = 0, amount = 0.0, minutes = 0L)
             }
             val wkEnd = DateFormatters.weekEndSunday(wkStart)
