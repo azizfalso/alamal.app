@@ -33,9 +33,18 @@ class SettingsRepository(private val context: Context) {
     }
 
     val settings: Flow<AppSettings> = context.alamalDataStore.data.map { p ->
+        // Auto-migrate from the old blue default to the new gold default.
+        // If the user has explicitly picked a different color, we keep it.
+        val rawColor = p[Keys.APP_COLOR] ?: AppSettings.DEFAULT_COLOR_HEX
+        val colorHex = if (rawColor.equals(
+                AppSettings.LEGACY_DEFAULT_COLOR_HEX,
+                ignoreCase = true,
+            )
+        ) AppSettings.DEFAULT_COLOR_HEX else rawColor
+
         AppSettings(
             themeMode = ThemeMode.fromKey(p[Keys.THEME_MODE]),
-            appColorHex = p[Keys.APP_COLOR] ?: AppSettings.DEFAULT_COLOR_HEX,
+            appColorHex = colorHex,
             currency = p[Keys.CURRENCY] ?: "DH",
             hourlyRate = (p[Keys.HOURLY_RATE] ?: 10f).toDouble(),
             pin = p[Keys.PIN] ?: "",

@@ -19,19 +19,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.alamal.app.ui.theme.LocalExtendedColors
 
 /**
  * Claude-style card: Ivory surface, 16dp radius, 1dp warm border, no heavy shadow.
+ * Content padding reduced from 20dp to 14dp to compress vertical space.
  */
 @Composable
 fun AlamalCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    contentPadding: Int = 20,
+    contentPadding: Int = 14,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(16.dp)
@@ -49,7 +58,7 @@ fun AlamalCard(
 
     Column(
         modifier = base.padding(contentPadding.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         content = content,
     )
 }
@@ -95,7 +104,7 @@ fun AlamalStatRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -136,4 +145,51 @@ fun AlamalPill(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/**
+ * Draws a dashed rounded border around the composable.
+ * Used for the "clock in" quick action, signalling an unfilled state.
+ *
+ * The rect is inset by half the stroke width so the full stroke stays visible
+ * even when the composable is clipped to the same rounded shape.
+ */
+fun Modifier.dashedBorder(
+    color: Color,
+    strokeWidth: Dp = 1.dp,
+    cornerRadius: Dp = 16.dp,
+    dashLength: Dp = 8.dp,
+    gapLength: Dp = 6.dp,
+): Modifier = this.drawBehind {
+    val strokeWidthPx = strokeWidth.toPx()
+    val inset = strokeWidthPx / 2f
+    val cornerRadiusPx = cornerRadius.toPx()
+    val dashLengthPx = dashLength.toPx()
+    val gapLengthPx = gapLength.toPx()
+
+    val path = Path().apply {
+        addRoundRect(
+            RoundRect(
+                rect = Rect(
+                    inset,
+                    inset,
+                    size.width - inset,
+                    size.height - inset,
+                ),
+                cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
+            )
+        )
+    }
+
+    drawPath(
+        path = path,
+        color = color,
+        style = Stroke(
+            width = strokeWidthPx,
+            pathEffect = PathEffect.dashPathEffect(
+                floatArrayOf(dashLengthPx, gapLengthPx),
+                0f,
+            ),
+        ),
+    )
 }

@@ -13,7 +13,10 @@ data class AppSettings(
     val longShiftHours: Int = 12,
 ) {
     companion object {
-        const val DEFAULT_COLOR_HEX = "#4D6BFE"
+        // New default: warm gold-olive
+        const val DEFAULT_COLOR_HEX = "#8B7548"
+        // The pre-v1.1 default, used for auto-migration in SettingsRepository.
+        const val LEGACY_DEFAULT_COLOR_HEX = "#4D6BFE"
         val DEFAULT = AppSettings()
     }
 }

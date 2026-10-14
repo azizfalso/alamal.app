@@ -116,6 +116,17 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Cancel the currently open clock-in entirely.
+     * Removes the work day (with any breaks) and shows an undo snackbar.
+     */
+    fun cancelClockIn() {
+        viewModelScope.launch {
+            val open = repo.getOpenWorkDay() ?: return@launch
+            repo.deleteWorkDayWithUndo(open.id)
+        }
+    }
+
     fun deleteWorkDay(id: Long) {
         viewModelScope.launch { repo.deleteWorkDay(id) }
     }

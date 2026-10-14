@@ -104,7 +104,7 @@ private fun darkSchemeFrom(seed: Color) = darkColorScheme(
 
 /**
  * Builds the extended Claude-style colors from the user's chosen seed color.
- * The accent now follows the seed so the whole UI changes when the user
+ * The accent follows the seed so the whole UI changes when the user
  * picks a new color in Settings.
  */
 private fun extendedFrom(seed: Color, dark: Boolean): ExtendedColors =
@@ -143,7 +143,7 @@ private fun extendedFrom(seed: Color, dark: Boolean): ExtendedColors =
 @Composable
 fun AlamalTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    seedColor: Color = Terracotta,
+    seedColor: Color = GoldOlive,
     content: @Composable () -> Unit,
 ) {
     val dark = when (themeMode) {
@@ -164,7 +164,7 @@ fun AlamalTheme(
     }
 }
 
-fun parseHexColor(hex: String, fallback: Color = Terracotta): Color {
+fun parseHexColor(hex: String, fallback: Color = GoldOlive): Color {
     val cleaned = hex.trim().removePrefix("#")
     return try {
         val v = cleaned.toLong(16)
