@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -42,7 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -116,15 +115,20 @@ fun HomeScreen(
             onOpenCreditForm = onOpenCreditForm,
         )
 
-        SecondaryAction("إضافة يوم عمل يدويًا") {
-            onOpenWorkDayForm(-1L)
-        }
-        SecondaryAction("مشاركة ملخص الفترة الحالية", icon = true) {
-            showShareDialog = true
-        }
-        SecondaryAction("الإحصائيات الشهرية") {
-            onOpenStats()
-        }
+        SecondaryAction(
+            text = "إضافة يوم عمل يدويًا",
+            onClick = { onOpenWorkDayForm(-1L) },
+        )
+        SecondaryAction(
+            text = "مشاركة ملخص الفترة الحالية",
+            icon = Icons.Default.Share,
+            onClick = { showShareDialog = true },
+        )
+        SecondaryAction(
+            text = "الإحصائيات الشهرية",
+            icon = Icons.Default.Insights,
+            onClick = onOpenStats,
+        )
 
         PaymentButton(onClick = onOpenPayment)
 
@@ -148,8 +152,6 @@ fun HomeScreen(
         )
     }
 }
-
-// ---------------- Cards ----------------
 
 @Composable
 private fun NetCard(net: Double, currency: String) {
@@ -328,14 +330,14 @@ private fun QuickActionsRow(
     ) {
         SecondaryAction(
             text = "عمل عن بُعد",
-            modifier = Modifier.weight(1f),
             icon = Icons.Default.Laptop,
+            modifier = Modifier.weight(1f),
             onClick = onOpenRemoteWorkForm,
         )
         SecondaryAction(
             text = "كريدي",
-            modifier = Modifier.weight(1f),
             icon = Icons.Default.MoneyOff,
+            modifier = Modifier.weight(1f),
             onClick = onOpenCreditForm,
         )
     }
@@ -345,8 +347,7 @@ private fun QuickActionsRow(
 private fun SecondaryAction(
     text: String,
     modifier: Modifier = Modifier.fillMaxWidth(),
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    @Suppress("UNUSED_PARAMETER") iconLeading: Boolean = false,
+    icon: ImageVector? = null,
     onClick: () -> Unit,
 ) {
     OutlinedButton(
@@ -387,3 +388,14 @@ private fun PaymentButton(onClick: () -> Unit) {
         )
     }
 }
+```
+
+## ما تغيّر
+
+- حذف `iconLeading` (لم يكن مستخدمًا).
+- تغيير `icon = true` إلى `icon = Icons.Default.Share` في زر مشاركة الملخص.
+- إضافة `icon = Icons.Default.Insights` لزر الإحصائيات (كان بدون أيقونة).
+
+## الخطوة
+
+**استبدل** `HomeScreen.kt`. **Sync + Push**.
