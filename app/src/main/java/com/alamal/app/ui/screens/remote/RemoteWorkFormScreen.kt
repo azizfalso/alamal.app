@@ -13,7 +13,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
@@ -75,14 +74,7 @@ fun RemoteWorkFormScreen(
     LaunchedEffect(itemId) {
         if (loaded) return@LaunchedEffect
         if (itemId > 0L) {
-            val existing = repo.let { r ->
-                runCatching {
-                    r.getWorkDay(itemId)
-                    null
-                }.getOrNull()
-            }
-            // Use DAO through repository helper:
-            val item = loadRemoteWork(repo, itemId)
+            val item = repo.getRemoteWork(itemId)
             if (item != null) {
                 currentId = item.id
                 dateMs = item.date
@@ -224,11 +216,3 @@ fun RemoteWorkFormScreen(
 
 private fun formatAmount(a: Double): String =
     if (a == a.toLong().toDouble()) a.toLong().toString() else a.toString()
-
-/** Small helper to load a remote work entry by id without exposing a DAO in the screen. */
-private suspend fun loadRemoteWork(repo: AppRepository, id: Long): RemoteWorkEntity? {
-    // Fallback: read from the current flow list.
-    return runCatching {
-        repo.currentRemoteWorks.let { _ -> null as RemoteWorkEntity? }
-    }.getOrNull()
-}

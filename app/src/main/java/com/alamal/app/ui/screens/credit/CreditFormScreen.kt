@@ -74,7 +74,7 @@ fun CreditFormScreen(
     LaunchedEffect(itemId) {
         if (loaded) return@LaunchedEffect
         if (itemId > 0L) {
-            val item = loadCredit(repo, itemId)
+            val item = repo.getCredit(itemId)
             if (item != null) {
                 currentId = item.id
                 dateMs = item.date
@@ -222,10 +222,3 @@ fun CreditFormScreen(
 
 private fun formatAmount(a: Double): String =
     if (a == a.toLong().toDouble()) a.toLong().toString() else a.toString()
-
-/** Small helper to load a credit entry by id without exposing a DAO in the screen. */
-private suspend fun loadCredit(repo: AppRepository, id: Long): CreditEntity? {
-    return runCatching {
-        repo.currentCredits.let { _ -> null as CreditEntity? }
-    }.getOrNull()
-}

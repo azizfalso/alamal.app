@@ -209,6 +209,8 @@ fun SettingsScreen() {
             }
         }
 
+        BackupSettingsSection()
+
         SectionCard(title = stringResource(R.string.settings_section_security)) {
             PinManager(repo = repo, currentPin = settings.pin)
             Spacer(Modifier.height(8.dp))
@@ -250,7 +252,7 @@ private fun rememberVersionName(context: Context): String {
 }
 
 @Composable
-private fun SectionCard(
+internal fun SectionCard(
     title: String,
     content: @Composable () -> Unit,
 ) {

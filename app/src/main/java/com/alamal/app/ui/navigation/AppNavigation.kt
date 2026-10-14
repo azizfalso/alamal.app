@@ -37,7 +37,7 @@ import com.alamal.app.ui.screens.archive.ArchiveScreen
 import com.alamal.app.ui.screens.credit.CreditFormScreen
 import com.alamal.app.ui.screens.home.HomeScreen
 import com.alamal.app.ui.screens.payment.PaymentScreen
-import com.alamal.app.ui.screens.placeholder.PlaceholderScreen
+import com.alamal.app.ui.screens.records.RecordsScreen
 import com.alamal.app.ui.screens.remote.RemoteWorkFormScreen
 import com.alamal.app.ui.screens.settings.SettingsScreen
 import com.alamal.app.ui.screens.workday.WorkDayFormScreen
@@ -130,7 +130,11 @@ fun AppNavigation() {
                 )
             }
             composable(Routes.RECORDS) {
-                PlaceholderScreen(title = stringResource(R.string.nav_records))
+                RecordsScreen(
+                    onOpenWorkDay = { id -> navController.navigate(Routes.workDayForm(id)) },
+                    onOpenRemote = { id -> navController.navigate(Routes.remoteWorkForm(id)) },
+                    onOpenCredit = { id -> navController.navigate(Routes.creditForm(id)) },
+                )
             }
             composable(Routes.ARCHIVE) { ArchiveScreen() }
             composable(Routes.SETTINGS) { SettingsScreen() }
