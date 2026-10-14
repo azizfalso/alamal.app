@@ -27,6 +27,11 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
+
+        <service
+            android:name=".lock.AppLockService"
+            android:exported="false"
+            android:stopWithTask="false" />
     </application>
 
 </manifest>
