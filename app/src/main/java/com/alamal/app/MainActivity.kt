@@ -39,7 +39,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         settingsRepo = SettingsRepository(applicationContext)
 
-        // Determine initial lock state from stored PIN.
         lifecycleScope.launch {
             val s = settingsRepo.settings.first()
             isLocked.value = s.pin.isNotEmpty()
@@ -49,7 +48,6 @@ class MainActivity : ComponentActivity() {
             val settings by settingsRepo.settings.collectAsState(initial = AppSettings.DEFAULT)
             val locked = isLocked.value
 
-            // Safety: if PIN was removed while locked, unlock.
             LaunchedEffect(settings.pin) {
                 if (settings.pin.isEmpty() && isLocked.value == true) {
                     isLocked.value = false
@@ -66,18 +64,14 @@ class MainActivity : ComponentActivity() {
                         color = MaterialTheme.colorScheme.background,
                     ) {
                         when {
-                            locked == null -> {
-                                // Splash: show only the background while we read preferences.
-                            }
+                            locked == null -> Unit
                             locked && settings.pin.isNotEmpty() -> {
                                 LockScreen(
                                     expectedPin = settings.pin,
                                     onUnlock = { isLocked.value = false },
                                 )
                             }
-                            else -> {
-                                AppNavigation()
-                            }
+                            else -> AppNavigation()
                         }
                     }
                 }

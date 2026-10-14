@@ -26,19 +26,28 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.alamal.app.R
+import com.alamal.app.ui.screens.credit.CreditFormScreen
 import com.alamal.app.ui.screens.home.HomeScreen
 import com.alamal.app.ui.screens.placeholder.PlaceholderScreen
+import com.alamal.app.ui.screens.remote.RemoteWorkFormScreen
 import com.alamal.app.ui.screens.settings.SettingsScreen
+import com.alamal.app.ui.screens.workday.WorkDayFormScreen
 
 private data class BottomNavItem(
     val route: String,
     @StringRes val labelRes: Int,
     val icon: ImageVector,
+)
+
+private val bottomRoutes = setOf(
+    Routes.HOME, Routes.RECORDS, Routes.ARCHIVE, Routes.SETTINGS
 )
 
 @Composable
@@ -55,8 +64,8 @@ fun AppNavigation() {
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    val showBottomBar = currentRoute in bottomRoutes
 
-    // Double-back-to-exit only on the Home tab.
     var lastBackPress by remember { mutableLongStateOf(0L) }
     BackHandler(enabled = currentRoute == Routes.HOME) {
         val now = System.currentTimeMillis()
@@ -70,24 +79,29 @@ fun AppNavigation() {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                items.forEach { item ->
-                    val selected = backStackEntry?.destination?.hierarchy?.any { it.route == item.route } == true
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            if (currentRoute == item.route) return@NavigationBarItem
-                            navController.navigate(item.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = {
-                            Icon(item.icon, contentDescription = stringResource(item.labelRes))
-                        },
-                        label = { Text(stringResource(item.labelRes)) },
-                    )
+            if (showBottomBar) {
+                NavigationBar {
+                    items.forEach { item ->
+                        val selected = backStackEntry?.destination?.hierarchy
+                            ?.any { it.route == item.route } == true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                if (currentRoute == item.route) return@NavigationBarItem
+                                navController.navigate(item.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = {
+                                Icon(item.icon, contentDescription = stringResource(item.labelRes))
+                            },
+                            label = { Text(stringResource(item.labelRes)) },
+                        )
+                    }
                 }
             }
         },
@@ -97,7 +111,19 @@ fun AppNavigation() {
             startDestination = Routes.HOME,
             modifier = Modifier.padding(padding),
         ) {
-            composable(Routes.HOME) { HomeScreen() }
+            composable(Routes.HOME) {
+                HomeScreen(
+                    onOpenWorkDayForm = { dayId ->
+                        navController.navigate(Routes.workDayForm(dayId))
+                    },
+                    onOpenRemoteWorkForm = {
+                        navController.navigate(Routes.remoteWorkForm(-1L))
+                    },
+                    onOpenCreditForm = {
+                        navController.navigate(Routes.creditForm(-1L))
+                    },
+                )
+            }
             composable(Routes.RECORDS) {
                 PlaceholderScreen(title = stringResource(R.string.nav_records))
             }
@@ -105,6 +131,54 @@ fun AppNavigation() {
                 PlaceholderScreen(title = stringResource(R.string.nav_archive))
             }
             composable(Routes.SETTINGS) { SettingsScreen() }
+
+            composable(
+                route = Routes.workDayFormPattern(),
+                arguments = listOf(
+                    navArgument(Routes.ARG_DAY_ID) {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                ),
+            ) { entry ->
+                val dayId = entry.arguments?.getLong(Routes.ARG_DAY_ID) ?: -1L
+                WorkDayFormScreen(
+                    dayId = dayId,
+                    onDone = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = Routes.remoteWorkFormPattern(),
+                arguments = listOf(
+                    navArgument(Routes.ARG_ITEM_ID) {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                ),
+            ) { entry ->
+                val itemId = entry.arguments?.getLong(Routes.ARG_ITEM_ID) ?: -1L
+                RemoteWorkFormScreen(
+                    itemId = itemId,
+                    onDone = { navController.popBackStack() },
+                )
+            }
+
+            composable(
+                route = Routes.creditFormPattern(),
+                arguments = listOf(
+                    navArgument(Routes.ARG_ITEM_ID) {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                ),
+            ) { entry ->
+                val itemId = entry.arguments?.getLong(Routes.ARG_ITEM_ID) ?: -1L
+                CreditFormScreen(
+                    itemId = itemId,
+                    onDone = { navController.popBackStack() },
+                )
+            }
         }
     }
 }
