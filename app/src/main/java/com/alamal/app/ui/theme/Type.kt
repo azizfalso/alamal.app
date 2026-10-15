@@ -1,6 +1,7 @@
 package com.alamal.app.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -28,6 +29,11 @@ import com.alamal.app.R
  *   FontVariation.Settings. This is the same mechanism the system uses
  *   for variable fonts since API 26 (minSdk here is 32, so it's safe).
  *
+ *   FontVariation and the "variable font" plumbing are still marked
+ *   @ExperimentalTextApi in Compose. We opt in explicitly below; the
+ *   behavior is stable and this is the only supported way to select a
+ *   weight from a variable font file.
+ *
  * Why the LineHeightStyle / includeFontPadding changes?
  *   Android adds implicit padding around every glyph based on Latin
  *   font metrics. With Arabic this creates a "text floating on a white
@@ -35,6 +41,7 @@ import com.alamal.app.R
  *   padding + centering the line height gives text that hugs its
  *   container correctly.
  */
+@OptIn(ExperimentalTextApi::class)
 val Cairo = FontFamily(
     Font(
         resId = R.font.cairo,
@@ -67,11 +74,13 @@ private val NoFontPadding = PlatformTextStyle(includeFontPadding = false)
  * on letters like ج، ح، خ، ع، غ (their descenders), change `trim` to
  * LineHeightStyle.Trim.None.
  */
+@OptIn(ExperimentalTextApi::class)
 private val ArabicLineHeight = LineHeightStyle(
     alignment = LineHeightStyle.Alignment.Center,
     trim = LineHeightStyle.Trim.Both,
 )
 
+@OptIn(ExperimentalTextApi::class)
 private fun arabic(
     size: Int,
     line: Int,
