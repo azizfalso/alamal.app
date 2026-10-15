@@ -8,6 +8,10 @@ import androidx.compose.ui.graphics.Color
  * Exposes Claude-style semantic colors (muted, meta, border, ring, accent).
  *
  * Access with: LocalExtendedColors.current.muted
+ *
+ * These top-level values are kept as a static fallback. The actual runtime
+ * values are built in Theme.kt's `extendedFrom(seed, dark)`, which uses the
+ * same tokens defined in Color.kt.
  */
 data class ExtendedColors(
     val muted: Color,
@@ -27,9 +31,9 @@ data class ExtendedColors(
 val LightExtendedColors = ExtendedColors(
     muted = OliveGray,
     meta = StoneGray,
-    border = BorderCream,
-    borderStrong = BorderWarm,
-    ring = RingWarm,
+    border = BorderSoftLight,
+    borderStrong = BorderMediumLight,
+    ring = BorderMediumLight,
     ringPressed = RingDeep,
     accent = GoldOlive,
     accentPressed = GoldOliveHover,
@@ -40,14 +44,14 @@ val LightExtendedColors = ExtendedColors(
 )
 
 val DarkExtendedColors = ExtendedColors(
-    muted = WarmSilver,
-    meta = Color(0xFF87867F),
-    border = DarkSurface,
-    borderStrong = DarkElevated,
-    ring = DarkElevated,
-    ringPressed = Color(0xFF4D4C48),
-    accent = GoldOliveLight,
-    accentPressed = GoldOlive,
+    muted = DarkTextMuted,
+    meta = DarkTextMeta,
+    border = BorderSoftDark,
+    borderStrong = BorderMediumDark,
+    ring = BorderMediumDark,
+    ringPressed = Color(0xFF6A6965),
+    accent = GoldOliveBright,
+    accentPressed = GoldOliveLight,
     accentOn = NearBlack,
     onWarmSurface = WarmSilver,
     success = SuccessGreen,

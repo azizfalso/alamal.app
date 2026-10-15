@@ -317,6 +317,10 @@ fun BackupSettingsSection() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // Short labels — the section title already says "النسخ الاحتياطي",
+            // and the previous labels ("استعادة من التلقائية" / "استعادة من ملف")
+            // wrapped to two lines inside a fixed 48dp button, which caused the
+            // text to be clipped on narrow screens.
             OutlinedButton(
                 onClick = {
                     scope.launch {
@@ -335,7 +339,7 @@ fun BackupSettingsSection() {
                     .weight(1f)
                     .height(48.dp),
                 shape = RoundedCornerShape(14.dp),
-            ) { Text("استعادة من التلقائية") }
+            ) { Text("من التلقائية") }
 
             OutlinedButton(
                 onClick = {
@@ -346,7 +350,7 @@ fun BackupSettingsSection() {
                     .weight(1f)
                     .height(48.dp),
                 shape = RoundedCornerShape(14.dp),
-            ) { Text("استعادة من ملف") }
+            ) { Text("من ملف") }
         }
 
         Text(

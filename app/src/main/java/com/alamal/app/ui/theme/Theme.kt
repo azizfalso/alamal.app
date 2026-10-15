@@ -52,24 +52,24 @@ private fun lightSchemeFrom(seed: Color) = lightColorScheme(
     surfaceContainerHigh = WarmSand,
     surfaceContainerHighest = WarmSand,
 
-    outline = RingWarm,
-    outlineVariant = BorderCream,
+    outline = BorderMediumLight,
+    outlineVariant = BorderSoftLight,
 
     scrim = NearBlack,
 )
 
 private fun darkSchemeFrom(seed: Color) = darkColorScheme(
-    primary = seed.tint(0.35f),
+    primary = seed.tint(0.40f),
     onPrimary = seed.shade(0.75f),
     primaryContainer = seed.shade(0.40f),
     onPrimaryContainer = seed.tint(0.85f),
 
-    secondary = seed.tint(0.45f),
+    secondary = seed.tint(0.50f),
     onSecondary = seed.shade(0.75f),
     secondaryContainer = seed.shade(0.40f),
     onSecondaryContainer = seed.tint(0.85f),
 
-    tertiary = seed.tint(0.50f),
+    tertiary = seed.tint(0.55f),
     onTertiary = seed.shade(0.75f),
     tertiaryContainer = seed.shade(0.45f),
     onTertiaryContainer = seed.tint(0.85f),
@@ -84,8 +84,8 @@ private fun darkSchemeFrom(seed: Color) = darkColorScheme(
     surface = DarkDeep,
     onSurface = Ivory,
     surfaceVariant = DarkSurface,
-    onSurfaceVariant = WarmSilver,
-    surfaceTint = seed.tint(0.35f),
+    onSurfaceVariant = DarkTextMuted,
+    surfaceTint = seed.tint(0.40f),
     inverseSurface = Parchment,
     inverseOnSurface = NearBlack,
     inversePrimary = seed.shade(0.15f),
@@ -96,28 +96,39 @@ private fun darkSchemeFrom(seed: Color) = darkColorScheme(
     surfaceContainerHigh = DarkElevated,
     surfaceContainerHighest = DarkElevated,
 
-    outline = DarkElevated,
-    outlineVariant = DarkSurface,
+    outline = BorderMediumDark,
+    outlineVariant = BorderSoftDark,
 
     scrim = Color(0xFF000000),
 )
 
 /**
  * Builds the extended Claude-style colors from the user's chosen seed color.
- * The accent follows the seed so the whole UI changes when the user
- * picks a new color in Settings.
+ *
+ * IMPORTANT — borders:
+ *   The card surface in this app is `surfaceContainerLow`.
+ *   - Light theme: card is Ivory (#FAF9F5). Border must be visibly darker.
+ *   - Dark theme: card is DarkSurface (#30302E). Border must be visibly lighter.
+ *   The old values failed both cases (Light: barely visible; Dark: invisible).
+ *   New values come from Color.kt: BorderSoftLight / BorderMediumLight /
+ *   BorderSoftDark / BorderMediumDark.
+ *
+ * IMPORTANT — text on dark:
+ *   muted/meta must not sit in the same warm family as the background,
+ *   otherwise they melt together. DarkTextMuted / DarkTextMeta are cooler
+ *   and brighter than the previous WarmSilver.
  */
 private fun extendedFrom(seed: Color, dark: Boolean): ExtendedColors =
     if (dark) {
         ExtendedColors(
-            muted = WarmSilver,
-            meta = Color(0xFF87867F),
-            border = DarkSurface,
-            borderStrong = DarkElevated,
-            ring = DarkElevated,
-            ringPressed = Color(0xFF4D4C48),
-            accent = seed.tint(0.30f),
-            accentPressed = seed.tint(0.10f),
+            muted = DarkTextMuted,
+            meta = DarkTextMeta,
+            border = BorderSoftDark,
+            borderStrong = BorderMediumDark,
+            ring = BorderMediumDark,
+            ringPressed = Color(0xFF6A6965),
+            accent = seed.tint(0.35f),
+            accentPressed = seed.tint(0.15f),
             accentOn = NearBlack,
             onWarmSurface = WarmSilver,
             success = SuccessGreen,
@@ -127,9 +138,9 @@ private fun extendedFrom(seed: Color, dark: Boolean): ExtendedColors =
         ExtendedColors(
             muted = OliveGray,
             meta = StoneGray,
-            border = BorderCream,
-            borderStrong = BorderWarm,
-            ring = RingWarm,
+            border = BorderSoftLight,
+            borderStrong = BorderMediumLight,
+            ring = BorderMediumLight,
             ringPressed = RingDeep,
             accent = seed,
             accentPressed = seed.shade(0.10f),
