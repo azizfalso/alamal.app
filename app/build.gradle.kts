@@ -9,22 +9,41 @@ plugins {
 }
 
 // ---- Auto-download Arabic fonts before every build ----
-// Google Fonts "Cairo" is a variable font (wght 200-1000), so a single
-// .ttf covers all weights we use in Type.kt (Normal/Medium/SemiBold/Bold).
-// This task runs before preBuild, so both local builds and CI (GitHub Actions)
-// get the font without any manual step.
+//
+// We use Tajawal (static weights), not Cairo.
+// Reason: the previous Cairo variable font did not render well on some
+// Android devices — glyph weights looked wrong and some Arabic characters
+// appeared to fall back to a missing-glyph box. Tajawal ships as separate
+// static files, so each weight loads predictably everywhere.
+//
+// Tajawal has no SemiBold. Type.kt maps SemiBold requests to the Bold file
+// so nothing falls back to the system font.
 val downloadArabicFonts by tasks.registering {
     val fontDir = File(projectDir, "src/main/res/font")
     fontDir.mkdirs()
 
     val fonts = mapOf(
-        "cairo.ttf" to
-            "https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf",
+        "tajawal_regular.ttf" to
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/tajawal/Tajawal-Regular.ttf",
+        "tajawal_medium.ttf" to
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/tajawal/Tajawal-Medium.ttf",
+        "tajawal_bold.ttf" to
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/tajawal/Tajawal-Bold.ttf",
     )
+
+    // Remove obsolete fonts from previous versions so they don't linger
+    // as dead resources in the APK.
+    listOf("cairo.ttf").forEach { obsolete ->
+        val f = File(fontDir, obsolete)
+        if (f.exists()) {
+            f.delete()
+            logger.lifecycle("  removed obsolete font: $obsolete")
+        }
+    }
 
     fonts.forEach { (name, url) ->
         val target = File(fontDir, name)
-        if (!target.exists() || target.length() < 100_000L) {
+        if (!target.exists() || target.length() < 30_000L) {
             logger.lifecycle("→ Downloading Arabic font: $name")
             URI(url).toURL().openStream().use { input ->
                 target.outputStream().use { output -> input.copyTo(output) }
@@ -126,9 +145,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    // NOTE: androidx.lifecycle.process was removed here. It was declared
-    // but never used (no ProcessLifecycleOwner references anywhere), so
-    // dropping it saves ~50 KB from the APK.
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.androidx.compose.bom))
