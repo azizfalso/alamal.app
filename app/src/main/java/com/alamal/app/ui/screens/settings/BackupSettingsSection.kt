@@ -57,6 +57,17 @@ fun BackupSettingsSection() {
     val settings by settingsRepo.settings.collectAsState(initial = AppSettings.DEFAULT)
     val manager = remember { BackupManager(context) }
 
+    // Pre-resolve all strings outside of composable lambdas to avoid
+    // accidental reads inside non-composable callbacks.
+    val stringEnterPasswordFirst = stringResource(R.string.backup_dialog_enter_password_first)
+    val stringGenericError = stringResource(R.string.backup_generic_error)
+    val stringRestoreSuccess = stringResource(R.string.backup_restore_success)
+    val stringFolderPermissionError = stringResource(R.string.backup_folder_permission_error)
+    val stringNoAutoYet = stringResource(R.string.backup_no_auto_yet)
+    val stringEncryptionEnabled = stringResource(R.string.backup_encryption_enabled_session)
+    val stringFolderChosen = stringResource(R.string.backup_folder_chosen)
+    val stringSavedToastFmt = stringResource(R.string.backup_saved_toast)
+
     var showEncryptionDialog by remember { mutableStateOf(false) }
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
     var pendingRestorePayload by remember { mutableStateOf<BackupPayload?>(null) }
@@ -80,7 +91,7 @@ fun BackupSettingsSection() {
     fun performWrite(manual: Boolean) {
         if (busy) return
         if (settings.backupEncrypted && !BackupPasswordHolder.has()) {
-            toast(context.getString(R.string.backup_dialog_enter_password_first))
+            toast(stringEnterPasswordFirst)
             return
         }
         busy = true
@@ -101,15 +112,15 @@ fun BackupSettingsSection() {
                 }
                 when (result) {
                     is BackupManager.WriteResult.Success ->
-                        toast(context.getString(
-                            R.string.backup_saved_toast,
+                        toast(String.format(
+                            stringSavedToastFmt,
                             result.displayName,
                             result.sizeBytes / 1024,
                         ))
                     is BackupManager.WriteResult.Failure -> toast(result.message)
                 }
             } catch (t: Throwable) {
-                toast(context.getString(R.string.backup_generic_error, t.message ?: ""))
+                toast(String.format(stringGenericError, t.message ?: ""))
             } finally {
                 busy = false
             }
@@ -135,7 +146,7 @@ fun BackupSettingsSection() {
                     }
                 }
             } catch (t: Throwable) {
-                toast(context.getString(R.string.backup_generic_error, t.message ?: ""))
+                toast(String.format(stringGenericError, t.message ?: ""))
             } finally {
                 busy = false
             }
@@ -150,12 +161,11 @@ fun BackupSettingsSection() {
                     manager.restoreIntoDatabase(payload)
                 }
                 when (result) {
-                    is BackupManager.RestoreResult.Success ->
-                        toast(context.getString(R.string.backup_restore_success))
+                    is BackupManager.RestoreResult.Success -> toast(stringRestoreSuccess)
                     is BackupManager.RestoreResult.Failure -> toast(result.message)
                 }
             } catch (t: Throwable) {
-                toast(context.getString(R.string.backup_generic_error, t.message ?: ""))
+                toast(String.format(stringGenericError, t.message ?: ""))
             } finally {
                 busy = false
             }
@@ -181,15 +191,9 @@ fun BackupSettingsSection() {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
                 )
                 scope.launch { settingsRepo.setBackupTreeUri(uri.toString()) }
-                toast(context.getString(
-                    R.string.backup_folder_chosen,
-                    uri.lastPathSegment ?: "",
-                ))
+                toast(String.format(stringFolderChosen, uri.lastPathSegment ?: ""))
             } catch (t: Throwable) {
-                toast(context.getString(
-                    R.string.backup_folder_permission_error,
-                    t.message ?: "",
-                ))
+                toast(String.format(stringFolderPermissionError, t.message ?: ""))
             }
         }
     }
@@ -351,11 +355,8 @@ fun BackupSettingsSection() {
                         val uri = withContext(Dispatchers.IO) {
                             manager.findAutoBackup(treeUri)
                         }
-                        if (uri == null) {
-                            toast(context.getString(R.string.backup_no_auto_yet))
-                        } else {
-                            startRestoreFlow(uri)
-                        }
+                        if (uri == null) toast(stringNoAutoYet)
+                        else startRestoreFlow(uri)
                     }
                 },
                 enabled = !busy,
@@ -394,7 +395,7 @@ fun BackupSettingsSection() {
                 showEncryptionDialog = false
                 BackupPasswordHolder.set(pwd)
                 scope.launch { settingsRepo.setBackupEncrypted(true) }
-                toast(context.getString(R.string.backup_encryption_enabled_session))
+                toast(stringEncryptionEnabled)
             },
         )
     }
@@ -477,6 +478,10 @@ private fun PasswordDialog(
     var confirm by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
 
+    // Pre-resolve the error strings so we can use them in callbacks.
+    val errTooShort = stringResource(R.string.backup_password_too_short)
+    val errNoMatch = stringResource(R.string.backup_passwords_do_not_match)
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -510,10 +515,8 @@ private fun PasswordDialog(
             TextButton(
                 onClick = {
                     when {
-                        pwd.length < 4 ->
-                            error = "Password too short (min 4)"
-                        requireConfirm && pwd != confirm ->
-                            error = "Passwords do not match"
+                        pwd.length < 4 -> error = errTooShort
+                        requireConfirm && pwd != confirm -> error = errNoMatch
                         else -> onConfirm(pwd)
                     }
                 },

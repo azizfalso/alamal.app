@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    NOTE: Backup-related strings are NOT here.
+    They live in strings_backup.xml, in a separate file, to keep this
+    file focused on the rest of the app. Do NOT add any backup_* string
+    here — the resource merger will fail with "Duplicate resources".
+-->
 <resources>
     <string name="app_name">العمل</string>
 
@@ -68,22 +74,4 @@
     <string name="shortcut_clock_in_long">تسجيل دخول العمل</string>
     <string name="shortcut_clock_out_short">خروج</string>
     <string name="shortcut_clock_out_long">تسجيل خروج العمل</string>
-
-    <!-- ============ Backup (moved from Kotlin to avoid smart-quote issues) ============ -->
-    <string name="backup_password_required">كلمة مرور التشفير مطلوبة</string>
-    <string name="backup_unknown_error">خطأ غير معروف</string>
-    <string name="backup_cannot_create_in_documents">تعذّر إنشاء الملف في مجلد Documents/Alamal</string>
-    <string name="backup_cannot_open_for_write">تعذّر فتح الملف للكتابة</string>
-    <string name="backup_write_failed">فشل الكتابة: %1$s</string>
-    <string name="backup_saf_folder_unavailable">مجلد SAF غير متاح</string>
-    <string name="backup_saf_no_write_permission">لا توجد صلاحية كتابة في المجلد المختار</string>
-    <string name="backup_saf_cannot_create">تعذّر إنشاء الملف في المجلد المختار</string>
-    <string name="backup_saf_cannot_open">تعذّر فتح الملف في مجلد SAF</string>
-    <string name="backup_saf_write_failed">فشل الكتابة إلى SAF: %1$s</string>
-    <string name="backup_cannot_open">تعذّر فتح الملف</string>
-    <string name="backup_cannot_read">تعذّر قراءة الملف: %1$s</string>
-    <string name="backup_file_encrypted_need_password">هذا الملف مشفَّر. أدخل كلمة المرور.</string>
-    <string name="backup_decrypt_failed">فشل فك التشفير (كلمة مرور خاطئة أو ملف تالف)</string>
-    <string name="backup_invalid_file">الملف ليس نسخة احتياطية صالحة: %1$s</string>
-    <string name="backup_restore_failed">فشل الاستعادة: %1$s</string>
 </resources>

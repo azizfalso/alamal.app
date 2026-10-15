@@ -1,13 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Backup section strings.
-    Kept in a separate file so they merge with strings.xml automatically.
-    All strings here are referenced from BackupSettingsSection.kt and
-    BackupManager.kt via R.string.* — no Arabic literals are written
-    directly in Kotlin source anymore.
+
+    IMPORTANT: None of these keys may also appear in strings.xml.
+    The Android resource merger fails hard with "Duplicate resources"
+    if the same string name is declared twice, even across files.
+    All backup_* keys live ONLY here.
+
+    Why this file exists at all:
+      Arabic text written directly in Kotlin (.kt) source occasionally picks
+      up invisible bidi marks or "smart quotes" while editing, and those break
+      the Kotlin parser in confusing ways. Keeping the Arabic in XML eliminates
+      that class of bug and makes translation straightforward later.
 -->
 <resources>
-    <!-- Backup manager errors (used in BackupManager.kt) -->
+    <!-- ============ Backup manager error messages ============ -->
     <string name="backup_password_required">كلمة مرور التشفير مطلوبة</string>
     <string name="backup_unknown_error">خطأ غير معروف</string>
     <string name="backup_cannot_create_in_documents">تعذّر إنشاء الملف في مجلد Documents/Alamal</string>
@@ -25,7 +32,7 @@
     <string name="backup_invalid_file">الملف ليس نسخة احتياطية صالحة: %1$s</string>
     <string name="backup_restore_failed">فشل الاستعادة: %1$s</string>
 
-    <!-- Backup settings screen -->
+    <!-- ============ Backup settings screen labels ============ -->
     <string name="backup_section_title">النسخ الاحتياطي</string>
     <string name="backup_auto_title">نسخة تلقائية بعد كل تعديل</string>
     <string name="backup_auto_subtitle">يُستبدل ملف واحد فقط (alamal_auto) ولا يمس النسخ اليدوية</string>
@@ -44,6 +51,8 @@
     <string name="backup_from_auto">من التلقائية</string>
     <string name="backup_from_file">من ملف</string>
     <string name="backup_restore_note">الاستعادة تُلغي كل البيانات الحالية وتستبدلها بمحتوى النسخة. لا تشارك كلمة مرور التشفير مع أحد.</string>
+
+    <!-- ============ Toasts and quick messages ============ -->
     <string name="backup_dialog_enter_password_first">أدخل كلمة مرور التشفير أولًا من القسم نفسه.</string>
     <string name="backup_saved_toast">تم حفظ النسخة: %1$s (%2$d ك.ب)</string>
     <string name="backup_generic_error">خطأ: %1$s</string>
@@ -51,24 +60,21 @@
     <string name="backup_folder_chosen">تم اختيار المجلد: %1$s</string>
     <string name="backup_folder_permission_error">تعذّر الحصول على صلاحية المجلد: %1$s</string>
     <string name="backup_no_auto_yet">لا توجد نسخة تلقائية بعد.</string>
+    <string name="backup_encryption_enabled_session">تم تفعيل التشفير لهذه الجلسة.</string>
+
+    <!-- ============ Password dialog ============ -->
     <string name="backup_password_dialog_title_set">كلمة مرور التشفير</string>
     <string name="backup_password_dialog_subtitle_set">ستُطلب عند كل نسخة/استعادة. لا يمكن استعادتها إن نسيتها.</string>
     <string name="backup_password_dialog_title_restore">كلمة مرور فك التشفير</string>
     <string name="backup_password_dialog_subtitle_restore">هذه النسخة مشفَّرة.</string>
-    <string name="backup_encryption_enabled_session">تم تفعيل التشفير لهذه الجلسة.</string>
     <string name="backup_password_label">كلمة المرور</string>
     <string name="backup_password_confirm_label">تأكيد كلمة المرور</string>
+    <string name="backup_password_too_short">كلمة المرور قصيرة جدًا (4 أحرف على الأقل)</string>
+    <string name="backup_passwords_do_not_match">الكلمتان غير متطابقتين</string>
+
+    <!-- ============ Restore confirmation dialog ============ -->
     <string name="backup_restore_confirm_title">تأكيد الاستعادة</string>
-    <string name="backup_restore_confirm_body">سيتم استبدال كل البيانات الحالية بمحتوى النسخة:
-
-• أيام العمل: %1$d
-• الاستراحات: %2$d
-• العمل عن بُعد: %3$d
-• الكريدي: %4$d
-• الفترات المؤرشفة: %5$d
-• إعدادات التطبيق: %6$s
-
-لا يمكن التراجع بعد المتابعة.</string>
+    <string name="backup_restore_confirm_body">سيتم استبدال كل البيانات الحالية بمحتوى النسخة:\n\n• أيام العمل: %1$d\n• الاستراحات: %2$d\n• العمل عن بُعد: %3$d\n• الكريدي: %4$d\n• الفترات المؤرشفة: %5$d\n• إعدادات التطبيق: %6$s\n\nلا يمكن التراجع بعد المتابعة.</string>
     <string name="backup_restore_settings_yes">نعم</string>
     <string name="backup_restore_settings_no">لا</string>
     <string name="backup_restore_confirm_action">استعادة واستبدال</string>
