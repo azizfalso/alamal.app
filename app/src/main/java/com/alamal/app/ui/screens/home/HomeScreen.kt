@@ -79,14 +79,13 @@ fun HomeScreen(
     var showShareDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // ---- Scrollable content ----
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-                .padding(bottom = 84.dp), // reserve space for the action bar
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(bottom = 84.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
                 text = "الفترة الحالية",
@@ -96,7 +95,6 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = 2.dp),
             )
 
-            // ---- Unified summary card ----
             UnifiedSummaryCard(
                 net = state.netBalance,
                 carried = state.carriedBalance,
@@ -105,7 +103,6 @@ fun HomeScreen(
                 currency = state.currency,
             )
 
-            // ---- Clock-in / at-work card ----
             val open = state.openWorkDay
             if (open != null) {
                 AtWorkCard(
@@ -118,7 +115,6 @@ fun HomeScreen(
                 ClockInCard(onClockIn = { vm.clockIn() })
             }
 
-            // ---- Secondary actions: 2 compact buttons in one row ----
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -137,7 +133,6 @@ fun HomeScreen(
                 )
             }
 
-            // ---- Payment button ----
             Button(
                 onClick = onOpenPayment,
                 modifier = Modifier
@@ -160,7 +155,6 @@ fun HomeScreen(
             Spacer(Modifier.height(4.dp))
         }
 
-        // ---- Fixed action bar sitting just above the bottom navigation ----
         HomeActionBar(
             onWorkDay = { onOpenWorkDayForm(-1L) },
             onRemote = onOpenRemoteWorkForm,
@@ -190,11 +184,6 @@ fun HomeScreen(
     }
 }
 
-/**
- * Fixed 3-button action bar (work day / remote / credit).
- * Mirrors the visual language of the floating bottom navigation
- * so it feels like a natural extension of it.
- */
 @Composable
 private fun HomeActionBar(
     onWorkDay: () -> Unit,
@@ -251,7 +240,7 @@ private fun HomeActionItem(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -272,6 +261,11 @@ private fun HomeActionItem(
 
 /**
  * Unified card: one big number (net balance) + 3 split cells below.
+ *
+ * Previously the whole card was painted with the accent color, which made
+ * the page look heavy and buried the number. Now the card is a normal
+ * surface (ivory) and only the number itself carries the accent color —
+ * the number is the hero, the card is just its frame.
  */
 @Composable
 private fun UnifiedSummaryCard(
@@ -282,49 +276,62 @@ private fun UnifiedSummaryCard(
     currency: String,
 ) {
     val accent = LocalExtendedColors.current.accent
-    val accentOn = LocalExtendedColors.current.accentOn
+    val muted = LocalExtendedColors.current.muted
+    val border = LocalExtendedColors.current.border
+    val onSurface = MaterialTheme.colorScheme.onSurface
     val isNegative = net < -0.0001
 
-    val bg = if (isNegative) MaterialTheme.colorScheme.errorContainer else accent
-    val fgOnMain = if (isNegative) MaterialTheme.colorScheme.error else accentOn
-    val labelOnMain = if (isNegative)
-        MaterialTheme.colorScheme.error.copy(alpha = 0.75f)
-    else accentOn.copy(alpha = 0.85f)
+    val bg = if (isNegative)
+        MaterialTheme.colorScheme.errorContainer
+    else
+        MaterialTheme.colorScheme.surfaceContainerLow
+
+    val numberColor = if (isNegative)
+        MaterialTheme.colorScheme.error
+    else
+        accent
+
+    val borderColor = if (isNegative)
+        MaterialTheme.colorScheme.error.copy(alpha = 0.30f)
+    else
+        border
 
     val formatted = MoneyFormat.formatSigned(net, currency).replace(" ", "\u00A0")
+    val shape = RoundedCornerShape(20.dp)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(shape)
             .background(bg)
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .border(1.dp, borderColor, shape)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = "المجموع الكامل",
             style = MaterialTheme.typography.labelLarge,
-            color = labelOnMain,
+            color = muted,
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
         Text(
             text = formatted,
-            style = MaterialTheme.typography.headlineLarge,
-            color = fgOnMain,
+            style = MaterialTheme.typography.displaySmall,
+            color = numberColor,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(10.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(labelOnMain.copy(alpha = 0.35f)),
+                .background(border),
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -334,24 +341,27 @@ private fun UnifiedSummaryCard(
             SplitCell(
                 label = "مؤجل",
                 value = MoneyFormat.formatSigned(carried, currency),
-                labelColor = labelOnMain,
-                valueColor = fgOnMain,
+                labelColor = muted,
+                valueColor = onSurface,
             )
-            VerticalDividerLine(color = labelOnMain.copy(alpha = 0.35f))
+            VerticalDividerLine(color = border)
             SplitCell(
                 label = "الكريدي",
                 value = if (credits > 0.0001)
                     "- " + MoneyFormat.format(credits, currency)
                 else MoneyFormat.format(0.0, currency),
-                labelColor = labelOnMain,
-                valueColor = fgOnMain,
+                labelColor = muted,
+                valueColor = if (credits > 0.0001)
+                    MaterialTheme.colorScheme.error
+                else
+                    onSurface,
             )
-            VerticalDividerLine(color = labelOnMain.copy(alpha = 0.35f))
+            VerticalDividerLine(color = border)
             SplitCell(
                 label = "الأجور",
                 value = MoneyFormat.format(wages, currency),
-                labelColor = labelOnMain,
-                valueColor = fgOnMain,
+                labelColor = muted,
+                valueColor = onSurface,
             )
         }
     }
@@ -370,7 +380,7 @@ private fun SplitCell(
             style = MaterialTheme.typography.labelSmall,
             color = labelColor,
         )
-        Spacer(Modifier.height(3.dp))
+        Spacer(Modifier.height(2.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.titleSmall,
@@ -385,14 +395,11 @@ private fun VerticalDividerLine(color: Color) {
     Box(
         modifier = Modifier
             .width(1.dp)
-            .height(28.dp)
+            .height(24.dp)
             .background(color),
     )
 }
 
-/**
- * Dashed-border clock-in card — quick action, unfilled state.
- */
 @Composable
 private fun ClockInCard(onClockIn: () -> Unit) {
     val border = LocalExtendedColors.current.borderStrong
@@ -405,7 +412,7 @@ private fun ClockInCard(onClockIn: () -> Unit) {
             .clip(shape)
             .dashedBorder(color = border, cornerRadius = 16.dp)
             .clickable { onClockIn() }
-            .padding(horizontal = 18.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -483,7 +490,7 @@ private fun AtWorkCard(
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium,
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
         Button(
             onClick = onQuickStop,
             modifier = Modifier

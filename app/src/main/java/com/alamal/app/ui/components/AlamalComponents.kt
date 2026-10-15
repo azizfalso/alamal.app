@@ -33,14 +33,15 @@ import androidx.compose.ui.unit.dp
 import com.alamal.app.ui.theme.LocalExtendedColors
 
 /**
- * Claude-style card: Ivory surface, 16dp radius, 1dp warm border, no heavy shadow.
- * Content padding reduced from 20dp to 14dp to compress vertical space.
+ * Claude-style card: ivory surface, 16dp radius, 1dp warm border, no
+ * heavy shadow. Content padding tightened from 14dp to 12dp and inner
+ * spacing from 8dp to 6dp (user request: "مظهر متزاحم بعض الشيء").
  */
 @Composable
 fun AlamalCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    contentPadding: Int = 14,
+    contentPadding: Int = 12,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(16.dp)
@@ -58,7 +59,7 @@ fun AlamalCard(
 
     Column(
         modifier = base.padding(contentPadding.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         content = content,
     )
 }
@@ -91,7 +92,7 @@ fun AlamalScreenTitle(text: String, modifier: Modifier = Modifier) {
 
 /**
  * Label + value row, used in summary cards and stat blocks.
- * Values are emphasized slightly more than labels.
+ * Vertical padding tightened from 2dp to 0dp so rows stack compactly.
  */
 @Composable
 fun AlamalStatRow(
@@ -104,7 +105,7 @@ fun AlamalStatRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 0.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -1,3 +1,4 @@
+import java.net.URI
 import java.util.Properties
 
 plugins {
@@ -5,6 +6,38 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+}
+
+// ---- Auto-download Arabic fonts before every build ----
+// Google Fonts "Cairo" is a variable font (wght 200-1000), so a single
+// .ttf covers all weights we use in Type.kt (Normal/Medium/SemiBold/Bold).
+// This task runs before preBuild, so both local builds and CI (GitHub Actions)
+// get the font without any manual step.
+val downloadArabicFonts by tasks.registering {
+    val fontDir = File(projectDir, "src/main/res/font")
+    fontDir.mkdirs()
+
+    val fonts = mapOf(
+        "cairo.ttf" to
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf",
+    )
+
+    fonts.forEach { (name, url) ->
+        val target = File(fontDir, name)
+        if (!target.exists() || target.length() < 100_000L) {
+            logger.lifecycle("→ Downloading Arabic font: $name")
+            URI(url).toURL().openStream().use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+            logger.lifecycle("  saved $name (${target.length() / 1024} KB)")
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "preBuild") {
+        dependsOn(downloadArabicFonts)
+    }
 }
 
 val keystorePropertiesFile = rootProject.file("app/keystore.properties")

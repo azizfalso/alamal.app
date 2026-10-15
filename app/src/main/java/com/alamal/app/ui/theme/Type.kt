@@ -1,106 +1,101 @@
 package com.alamal.app.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
+import com.alamal.app.R
 
-private val Default = FontFamily.Default
+/**
+ * Arabic typography for Alamal.
+ *
+ * Why Cairo?
+ *   Roboto (the previous FontFamily.Default) has weak Arabic glyphs:
+ *   thin strokes, inconsistent spacing, and a Latin-only design that
+ *   leaves Arabic text looking "default". Cairo is a modern, neutral
+ *   Arabic-first sans with a full weight axis (200-1000) — perfect for
+ *   UI headings, body text, tables, and numbers.
+ *
+ * Why the LineHeightStyle / includeFontPadding changes?
+ *   Android adds implicit padding around every glyph based on Latin
+ *   font metrics. With Arabic this creates a "text floating on a white
+ *   page" effect: too much space above/below each line, and vertical
+ *   rhythm breaks down. Disabling that padding + centering the line
+ *   height gives text that hugs its container correctly and reads as
+ *   part of the surface, not as ink stamped on paper.
+ */
+val Cairo = FontFamily(
+    Font(R.font.cairo, weight = FontWeight.Normal),
+    Font(R.font.cairo, weight = FontWeight.Medium),
+    Font(R.font.cairo, weight = FontWeight.SemiBold),
+    Font(R.font.cairo, weight = FontWeight.Bold),
+)
 
+// Suppress: includeFontPadding is deprecated in Compose 1.7+ in favor of
+// LineHeightStyle.Trim, but keeping both gives the tightest, most
+// consistent result with Arabic text. Remove the field only if you
+// fully switch to Trim.Both and verify no clipping on ال التعريف.
+@Suppress("DEPRECATION")
+private val NoFontPadding = PlatformTextStyle(includeFontPadding = false)
+
+/**
+ * Center the text inside the line box and trim the extra leading that
+ * Arabic glyphs inherit from Latin metrics. If you ever notice clipping
+ * on letters like ج، ح، خ، ع، غ (their descenders), change `trim` to
+ * LineHeightStyle.Trim.None — you'll lose a bit of tightness but gain
+ * safe rendering for very tall glyphs.
+ */
+private val ArabicLineHeight = LineHeightStyle(
+    alignment = LineHeightStyle.Alignment.Center,
+    trim = LineHeightStyle.Trim.Both,
+)
+
+/**
+ * Helper: builds an Arabic-friendly TextStyle.
+ * `size` and `line` are in sp. For Arabic, line ≈ size * 1.5 for headings
+ * and ≈ size * 1.6 for body/label text.
+ */
+private fun arabic(
+    size: Int,
+    line: Int,
+    weight: FontWeight = FontWeight.Normal,
+): TextStyle = TextStyle(
+    fontFamily = Cairo,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = line.sp,
+    platformStyle = NoFontPadding,
+    lineHeightStyle = ArabicLineHeight,
+)
+
+/**
+ * Sizes are tuned for Arabic: slightly larger than the previous Roboto
+ * values (user request: "خط أكبر قليلًا") and paired with line heights
+ * that respect Arabic's taller vertical extent while staying visually
+ * compact (user request: "متزاحم بعض الشيء").
+ */
 val AlamalTypography = Typography(
-    displayLarge = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 46.sp,
-        lineHeight = 54.sp,
-    ),
-    displayMedium = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 38.sp,
-        lineHeight = 46.sp,
-    ),
-    displaySmall = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
-    ),
+    displayLarge = arabic(48, 58, FontWeight.Medium),
+    displayMedium = arabic(40, 48, FontWeight.Medium),
+    displaySmall = arabic(34, 42, FontWeight.Medium),
 
-    headlineLarge = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
-    ),
-    headlineSmall = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 22.sp,
-        lineHeight = 30.sp,
-    ),
+    headlineLarge = arabic(30, 40, FontWeight.Medium),
+    headlineMedium = arabic(26, 34, FontWeight.Medium),
+    headlineSmall = arabic(24, 32, FontWeight.Medium),
 
-    titleLarge = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 20.sp,
-        lineHeight = 28.sp,
-    ),
-    titleMedium = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 17.sp,
-        lineHeight = 24.sp,
-    ),
-    titleSmall = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 15.sp,
-        lineHeight = 22.sp,
-    ),
+    titleLarge = arabic(21, 28, FontWeight.Medium),
+    titleMedium = arabic(18, 26, FontWeight.Medium),
+    titleSmall = arabic(16, 23, FontWeight.Medium),
 
-    bodyLarge = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 17.sp,
-        lineHeight = 26.sp,
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-        lineHeight = 22.sp,
-    ),
-    bodySmall = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 13.sp,
-        lineHeight = 18.sp,
-    ),
+    bodyLarge = arabic(17, 26, FontWeight.Normal),
+    bodyMedium = arabic(16, 24, FontWeight.Normal),
+    bodySmall = arabic(14, 21, FontWeight.Normal),
 
-    labelLarge = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 15.sp,
-        lineHeight = 20.sp,
-    ),
-    labelMedium = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 13.sp,
-        lineHeight = 17.sp,
-    ),
-    labelSmall = TextStyle(
-        fontFamily = Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-    ),
+    labelLarge = arabic(15, 21, FontWeight.Medium),
+    labelMedium = arabic(14, 20, FontWeight.Medium),
+    labelSmall = arabic(12, 18, FontWeight.Medium),
 )
