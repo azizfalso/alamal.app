@@ -32,9 +32,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.alamal.app.R
 import com.alamal.app.data.backup.BackupManager
 import com.alamal.app.data.backup.BackupPayload
 import com.alamal.app.data.backup.BackupPasswordHolder
@@ -78,7 +80,7 @@ fun BackupSettingsSection() {
     fun performWrite(manual: Boolean) {
         if (busy) return
         if (settings.backupEncrypted && !BackupPasswordHolder.has()) {
-            toast("أدخل كلمة مرور التشفير أولًا من القسم نفسه.")
+            toast(context.getString(R.string.backup_dialog_enter_password_first))
             return
         }
         busy = true
@@ -99,11 +101,15 @@ fun BackupSettingsSection() {
                 }
                 when (result) {
                     is BackupManager.WriteResult.Success ->
-                        toast("تم حفظ النسخة: ${result.displayName} (${result.sizeBytes / 1024} ك.ب)")
+                        toast(context.getString(
+                            R.string.backup_saved_toast,
+                            result.displayName,
+                            result.sizeBytes / 1024,
+                        ))
                     is BackupManager.WriteResult.Failure -> toast(result.message)
                 }
             } catch (t: Throwable) {
-                toast("خطأ: ${t.message}")
+                toast(context.getString(R.string.backup_generic_error, t.message ?: ""))
             } finally {
                 busy = false
             }
@@ -129,7 +135,7 @@ fun BackupSettingsSection() {
                     }
                 }
             } catch (t: Throwable) {
-                toast("خطأ: ${t.message}")
+                toast(context.getString(R.string.backup_generic_error, t.message ?: ""))
             } finally {
                 busy = false
             }
@@ -144,11 +150,12 @@ fun BackupSettingsSection() {
                     manager.restoreIntoDatabase(payload)
                 }
                 when (result) {
-                    is BackupManager.RestoreResult.Success -> toast("تمت الاستعادة بنجاح.")
+                    is BackupManager.RestoreResult.Success ->
+                        toast(context.getString(R.string.backup_restore_success))
                     is BackupManager.RestoreResult.Failure -> toast(result.message)
                 }
             } catch (t: Throwable) {
-                toast("خطأ: ${t.message}")
+                toast(context.getString(R.string.backup_generic_error, t.message ?: ""))
             } finally {
                 busy = false
             }
@@ -174,9 +181,15 @@ fun BackupSettingsSection() {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
                 )
                 scope.launch { settingsRepo.setBackupTreeUri(uri.toString()) }
-                toast("تم اختيار المجلد: ${uri.lastPathSegment ?: ""}")
+                toast(context.getString(
+                    R.string.backup_folder_chosen,
+                    uri.lastPathSegment ?: "",
+                ))
             } catch (t: Throwable) {
-                toast("تعذّر الحصول على صلاحية المجلد: ${t.message}")
+                toast(context.getString(
+                    R.string.backup_folder_permission_error,
+                    t.message ?: "",
+                ))
             }
         }
     }
@@ -187,9 +200,11 @@ fun BackupSettingsSection() {
         if (uri != null) startRestoreFlow(uri)
     }
 
+    val autoBackupPaused = settings.backupEncrypted && !BackupPasswordHolder.has()
+
     AlamalCard {
         Text(
-            text = "النسخ الاحتياطي",
+            text = stringResource(R.string.backup_section_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             color = LocalExtendedColors.current.accent,
@@ -212,14 +227,24 @@ fun BackupSettingsSection() {
             )
             Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(
-                    text = "نسخة تلقائية بعد كل تعديل",
+                    text = stringResource(R.string.backup_auto_title),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "يُستبدل ملف واحد فقط (alamal_auto) ولا يمس النسخ اليدوية",
+                    text = when {
+                        autoBackupPaused && settings.autoBackupEnabled ->
+                            stringResource(R.string.backup_auto_paused_encrypted)
+                        settings.autoBackupEnabled ->
+                            stringResource(R.string.backup_auto_subtitle)
+                        else ->
+                            stringResource(R.string.backup_auto_disabled)
+                    },
                     style = MaterialTheme.typography.bodySmall,
-                    color = LocalExtendedColors.current.muted,
+                    color = if (autoBackupPaused && settings.autoBackupEnabled)
+                        MaterialTheme.colorScheme.error
+                    else
+                        LocalExtendedColors.current.muted,
                 )
             }
         }
@@ -247,17 +272,17 @@ fun BackupSettingsSection() {
             )
             Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(
-                    text = "تشفير النسخ الاحتياطية",
+                    text = stringResource(R.string.backup_encrypt_title),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = when {
                         settings.backupEncrypted && BackupPasswordHolder.has() ->
-                            "مُفعَّل — كلمة المرور محفوظة لهذه الجلسة"
+                            stringResource(R.string.backup_encrypt_on_session)
                         settings.backupEncrypted ->
-                            "مُفعَّل — لكن كلمة المرور غير محفوظة حاليًا"
-                        else -> "غير مُفعَّل"
+                            stringResource(R.string.backup_encrypt_on_no_session)
+                        else -> stringResource(R.string.backup_encrypt_off)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = LocalExtendedColors.current.muted,
@@ -272,7 +297,7 @@ fun BackupSettingsSection() {
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = RoundedCornerShape(14.dp),
-            ) { Text("إدخال كلمة مرور التشفير لهذه الجلسة") }
+            ) { Text(stringResource(R.string.backup_enter_password_for_session)) }
         }
 
         Row(
@@ -285,19 +310,19 @@ fun BackupSettingsSection() {
                     .weight(1f)
                     .height(48.dp),
                 shape = RoundedCornerShape(14.dp),
-            ) { Text("اختيار مجلد الحفظ") }
+            ) { Text(stringResource(R.string.backup_choose_folder)) }
             if (settings.backupTreeUri.isNotEmpty()) {
                 OutlinedButton(
                     onClick = { scope.launch { settingsRepo.setBackupTreeUri("") } },
                     modifier = Modifier.height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                ) { Text("مسح") }
+                ) { Text(stringResource(R.string.backup_clear)) }
             }
         }
         Text(
             text = if (settings.backupTreeUri.isEmpty())
-                "المكان الافتراضي: Documents/Alamal"
-            else "المجلد المختار: ${settings.backupTreeUri}",
+                stringResource(R.string.backup_default_folder)
+            else stringResource(R.string.backup_chosen_folder, settings.backupTreeUri),
             style = MaterialTheme.typography.bodySmall,
             color = LocalExtendedColors.current.muted,
         )
@@ -311,16 +336,12 @@ fun BackupSettingsSection() {
                 .fillMaxWidth()
                 .height(48.dp),
             shape = RoundedCornerShape(14.dp),
-        ) { Text("نسخة احتياطية جديدة الآن") }
+        ) { Text(stringResource(R.string.backup_new_now)) }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Short labels — the section title already says "النسخ الاحتياطي",
-            // and the previous labels ("استعادة من التلقائية" / "استعادة من ملف")
-            // wrapped to two lines inside a fixed 48dp button, which caused the
-            // text to be clipped on narrow screens.
             OutlinedButton(
                 onClick = {
                     scope.launch {
@@ -330,8 +351,11 @@ fun BackupSettingsSection() {
                         val uri = withContext(Dispatchers.IO) {
                             manager.findAutoBackup(treeUri)
                         }
-                        if (uri == null) toast("لا توجد نسخة تلقائية بعد.")
-                        else startRestoreFlow(uri)
+                        if (uri == null) {
+                            toast(context.getString(R.string.backup_no_auto_yet))
+                        } else {
+                            startRestoreFlow(uri)
+                        }
                     }
                 },
                 enabled = !busy,
@@ -339,7 +363,7 @@ fun BackupSettingsSection() {
                     .weight(1f)
                     .height(48.dp),
                 shape = RoundedCornerShape(14.dp),
-            ) { Text("من التلقائية") }
+            ) { Text(stringResource(R.string.backup_from_auto)) }
 
             OutlinedButton(
                 onClick = {
@@ -350,11 +374,11 @@ fun BackupSettingsSection() {
                     .weight(1f)
                     .height(48.dp),
                 shape = RoundedCornerShape(14.dp),
-            ) { Text("من ملف") }
+            ) { Text(stringResource(R.string.backup_from_file)) }
         }
 
         Text(
-            text = "الاستعادة تُلغي كل البيانات الحالية وتستبدلها بمحتوى النسخة. لا تشارك كلمة مرور التشفير مع أحد.",
+            text = stringResource(R.string.backup_restore_note),
             style = MaterialTheme.typography.bodySmall,
             color = LocalExtendedColors.current.muted,
         )
@@ -362,23 +386,23 @@ fun BackupSettingsSection() {
 
     if (showEncryptionDialog) {
         PasswordDialog(
-            title = "كلمة مرور التشفير",
-            subtitle = "ستُطلب عند كل نسخة/استعادة. لا يمكن استعادتها إن نسيتها.",
+            title = stringResource(R.string.backup_password_dialog_title_set),
+            subtitle = stringResource(R.string.backup_password_dialog_subtitle_set),
             requireConfirm = true,
             onDismiss = { showEncryptionDialog = false },
             onConfirm = { pwd ->
                 showEncryptionDialog = false
                 BackupPasswordHolder.set(pwd)
                 scope.launch { settingsRepo.setBackupEncrypted(true) }
-                toast("تم تفعيل التشفير لهذه الجلسة.")
+                toast(context.getString(R.string.backup_encryption_enabled_session))
             },
         )
     }
 
     if (showPasswordForRestore && pendingRestoreUri != null) {
         PasswordDialog(
-            title = "كلمة مرور فك التشفير",
-            subtitle = "هذه النسخة مشفَّرة.",
+            title = stringResource(R.string.backup_password_dialog_title_restore),
+            subtitle = stringResource(R.string.backup_password_dialog_subtitle_restore),
             requireConfirm = false,
             onDismiss = {
                 showPasswordForRestore = false
@@ -400,16 +424,21 @@ fun BackupSettingsSection() {
                 pendingRestorePayload = null
                 pendingRestoreUri = null
             },
-            title = { Text("تأكيد الاستعادة") },
+            title = { Text(stringResource(R.string.backup_restore_confirm_title)) },
             text = {
                 Text(
-                    "سيتم استبدال كل البيانات الحالية بمحتوى النسخة:\n\n" +
-                        "• أيام العمل: ${p.workDays.size}\n" +
-                        "• الاستراحات: ${p.breaks.size}\n" +
-                        "• العمل عن بُعد: ${p.remoteWorks.size}\n" +
-                        "• الكريدي: ${p.credits.size}\n" +
-                        "• الفترات المؤرشفة: ${p.periods.size}\n\n" +
-                        "لا يمكن التراجع بعد المتابعة."
+                    stringResource(
+                        R.string.backup_restore_confirm_body,
+                        p.workDays.size,
+                        p.breaks.size,
+                        p.remoteWorks.size,
+                        p.credits.size,
+                        p.periods.size,
+                        if (p.settingsMap.isEmpty())
+                            stringResource(R.string.backup_restore_settings_no)
+                        else
+                            stringResource(R.string.backup_restore_settings_yes),
+                    )
                 )
             },
             confirmButton = {
@@ -421,7 +450,7 @@ fun BackupSettingsSection() {
                         pendingRestoreUri = null
                         if (payload != null) performRestore(payload)
                     },
-                ) { Text("استعادة واستبدال") }
+                ) { Text(stringResource(R.string.backup_restore_confirm_action)) }
             },
             dismissButton = {
                 TextButton(
@@ -430,7 +459,7 @@ fun BackupSettingsSection() {
                         pendingRestorePayload = null
                         pendingRestoreUri = null
                     },
-                ) { Text("إلغاء") }
+                ) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
@@ -457,7 +486,7 @@ private fun PasswordDialog(
                 OutlinedTextField(
                     value = pwd,
                     onValueChange = { pwd = it; error = null },
-                    label = { Text("كلمة المرور") },
+                    label = { Text(stringResource(R.string.backup_password_label)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     shape = RoundedCornerShape(12.dp),
@@ -467,7 +496,7 @@ private fun PasswordDialog(
                     OutlinedTextField(
                         value = confirm,
                         onValueChange = { confirm = it; error = null },
-                        label = { Text("تأكيد كلمة المرور") },
+                        label = { Text(stringResource(R.string.backup_password_confirm_label)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         shape = RoundedCornerShape(12.dp),
@@ -481,15 +510,17 @@ private fun PasswordDialog(
             TextButton(
                 onClick = {
                     when {
-                        pwd.length < 4 -> error = "كلمة المرور قصيرة جدًا (4 أحرف على الأقل)"
-                        requireConfirm && pwd != confirm -> error = "الكلمتان غير متطابقتين"
+                        pwd.length < 4 ->
+                            error = "Password too short (min 4)"
+                        requireConfirm && pwd != confirm ->
+                            error = "Passwords do not match"
                         else -> onConfirm(pwd)
                     }
                 },
-            ) { Text("تأكيد") }
+            ) { Text(stringResource(R.string.confirm)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("إلغاء") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
 }

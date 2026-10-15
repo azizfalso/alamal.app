@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Backup section strings.
+    Kept in a separate file so they merge with strings.xml automatically.
+    All strings here are referenced from BackupSettingsSection.kt and
+    BackupManager.kt via R.string.* — no Arabic literals are written
+    directly in Kotlin source anymore.
+-->
+<resources>
+    <!-- Backup manager errors (used in BackupManager.kt) -->
+    <string name="backup_password_required">كلمة مرور التشفير مطلوبة</string>
+    <string name="backup_unknown_error">خطأ غير معروف</string>
+    <string name="backup_cannot_create_in_documents">تعذّر إنشاء الملف في مجلد Documents/Alamal</string>
+    <string name="backup_cannot_open_for_write">تعذّر فتح الملف للكتابة</string>
+    <string name="backup_write_failed">فشل الكتابة: %1$s</string>
+    <string name="backup_saf_folder_unavailable">مجلد SAF غير متاح</string>
+    <string name="backup_saf_no_write_permission">لا توجد صلاحية كتابة في المجلد المختار</string>
+    <string name="backup_saf_cannot_create">تعذّر إنشاء الملف في المجلد المختار</string>
+    <string name="backup_saf_cannot_open">تعذّر فتح الملف في مجلد SAF</string>
+    <string name="backup_saf_write_failed">فشل الكتابة إلى SAF: %1$s</string>
+    <string name="backup_cannot_open">تعذّر فتح الملف</string>
+    <string name="backup_cannot_read">تعذّر قراءة الملف: %1$s</string>
+    <string name="backup_file_encrypted_need_password">هذا الملف مشفَّر. أدخل كلمة المرور.</string>
+    <string name="backup_decrypt_failed">فشل فك التشفير (كلمة مرور خاطئة أو ملف تالف)</string>
+    <string name="backup_invalid_file">الملف ليس نسخة احتياطية صالحة: %1$s</string>
+    <string name="backup_restore_failed">فشل الاستعادة: %1$s</string>
+
+    <!-- Backup settings screen -->
+    <string name="backup_section_title">النسخ الاحتياطي</string>
+    <string name="backup_auto_title">نسخة تلقائية بعد كل تعديل</string>
+    <string name="backup_auto_subtitle">يُستبدل ملف واحد فقط (alamal_auto) ولا يمس النسخ اليدوية</string>
+    <string name="backup_auto_paused_encrypted">⚠️ متوقف حاليًا — التشفير مفعّل وكلمة المرور غير محمّلة</string>
+    <string name="backup_auto_disabled">غير مفعّل</string>
+    <string name="backup_encrypt_title">تشفير النسخ الاحتياطية</string>
+    <string name="backup_encrypt_on_session">مُفعَّل — كلمة المرور محفوظة لهذه الجلسة</string>
+    <string name="backup_encrypt_on_no_session">مُفعَّل — كلمة المرور غير محمّلة لهذه الجلسة</string>
+    <string name="backup_encrypt_off">غير مُفعَّل</string>
+    <string name="backup_enter_password_for_session">إدخال كلمة مرور التشفير لهذه الجلسة</string>
+    <string name="backup_choose_folder">اختيار مجلد الحفظ</string>
+    <string name="backup_clear">مسح</string>
+    <string name="backup_default_folder">المكان الافتراضي: Documents/Alamal</string>
+    <string name="backup_chosen_folder">المجلد المختار: %1$s</string>
+    <string name="backup_new_now">نسخة احتياطية جديدة الآن</string>
+    <string name="backup_from_auto">من التلقائية</string>
+    <string name="backup_from_file">من ملف</string>
+    <string name="backup_restore_note">الاستعادة تُلغي كل البيانات الحالية وتستبدلها بمحتوى النسخة. لا تشارك كلمة مرور التشفير مع أحد.</string>
+    <string name="backup_dialog_enter_password_first">أدخل كلمة مرور التشفير أولًا من القسم نفسه.</string>
+    <string name="backup_saved_toast">تم حفظ النسخة: %1$s (%2$d ك.ب)</string>
+    <string name="backup_generic_error">خطأ: %1$s</string>
+    <string name="backup_restore_success">تمت الاستعادة بنجاح.</string>
+    <string name="backup_folder_chosen">تم اختيار المجلد: %1$s</string>
+    <string name="backup_folder_permission_error">تعذّر الحصول على صلاحية المجلد: %1$s</string>
+    <string name="backup_no_auto_yet">لا توجد نسخة تلقائية بعد.</string>
+    <string name="backup_password_dialog_title_set">كلمة مرور التشفير</string>
+    <string name="backup_password_dialog_subtitle_set">ستُطلب عند كل نسخة/استعادة. لا يمكن استعادتها إن نسيتها.</string>
+    <string name="backup_password_dialog_title_restore">كلمة مرور فك التشفير</string>
+    <string name="backup_password_dialog_subtitle_restore">هذه النسخة مشفَّرة.</string>
+    <string name="backup_encryption_enabled_session">تم تفعيل التشفير لهذه الجلسة.</string>
+    <string name="backup_password_label">كلمة المرور</string>
+    <string name="backup_password_confirm_label">تأكيد كلمة المرور</string>
+    <string name="backup_restore_confirm_title">تأكيد الاستعادة</string>
+    <string name="backup_restore_confirm_body">سيتم استبدال كل البيانات الحالية بمحتوى النسخة:
+
+• أيام العمل: %1$d
+• الاستراحات: %2$d
+• العمل عن بُعد: %3$d
+• الكريدي: %4$d
+• الفترات المؤرشفة: %5$d
+• إعدادات التطبيق: %6$s
+
+لا يمكن التراجع بعد المتابعة.</string>
+    <string name="backup_restore_settings_yes">نعم</string>
+    <string name="backup_restore_settings_no">لا</string>
+    <string name="backup_restore_confirm_action">استعادة واستبدال</string>
+</resources>
