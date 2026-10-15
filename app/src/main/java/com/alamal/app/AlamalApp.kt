@@ -2,14 +2,17 @@ package com.alamal.app
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import com.alamal.app.data.AppRepository
 import com.alamal.app.data.backup.BackupCoordinator
 import com.alamal.app.data.prefs.AppSettings
 import com.alamal.app.data.prefs.SettingsRepository
 import com.alamal.app.lock.AppLockController
-import com.alamal.app.lock.AppLockService
+import com.alamal.app.lock.ScreenLockReceiver
 import com.alamal.app.work.NotificationHelper
 import com.alamal.app.work.NotificationScheduler
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +36,14 @@ class AlamalApp : Application() {
 
     @Volatile
     private var backgroundedAtMs = 0L
+
+    // Registered dynamically because ACTION_SCREEN_OFF cannot be declared
+    // in the manifest on Android 8+. This replaces the previous
+    // AppLockService, which was a non-foreground START_STICKY service and
+    // was therefore being killed by the OS a few seconds after backgrounding
+    // — silently disabling screen-off locking.
+    private val screenLockReceiver = ScreenLockReceiver()
+    private var screenReceiverRegistered = false
 
     @OptIn(FlowPreview::class)
     override fun onCreate() {
@@ -113,11 +124,33 @@ class AlamalApp : Application() {
             override fun onActivityDestroyed(activity: Activity) {}
         })
 
-        // ---- Best-effort: catch swipe-away from Recents + screen off ----
+        // ---- Lock the app as soon as the screen turns off ----
+        // Registered here (Application context) instead of in a Service, so
+        // no Service needs to be started. Kept alive as long as the process
+        // is alive, which is exactly what we need for this receiver.
+        registerScreenLockReceiver()
+    }
+
+    private fun registerScreenLockReceiver() {
+        if (screenReceiverRegistered) return
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
         try {
-            startService(Intent(this, AppLockService::class.java))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(
+                    screenLockReceiver,
+                    filter,
+                    Context.RECEIVER_NOT_EXPORTED,
+                )
+            } else {
+                @Suppress("UnspecifiedRegisterReceiverFlag")
+                registerReceiver(screenLockReceiver, filter)
+            }
+            screenReceiverRegistered = true
         } catch (_: Throwable) {
-            // Non-fatal — lock still works via ActivityLifecycleCallbacks.
+            // Non-fatal — backgrounding lock still works via the activity
+            // lifecycle callbacks above.
         }
     }
 

@@ -126,7 +126,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.process)
+    // NOTE: androidx.lifecycle.process was removed here. It was declared
+    // but never used (no ProcessLifecycleOwner references anywhere), so
+    // dropping it saves ~50 KB from the APK.
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.androidx.compose.bom))

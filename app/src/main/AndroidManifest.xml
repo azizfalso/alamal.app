@@ -30,10 +30,14 @@
                 android:resource="@xml/shortcuts" />
         </activity>
 
-        <service
-            android:name=".lock.AppLockService"
-            android:exported="false"
-            android:stopWithTask="false" />
+        <!--
+            AppLockService was removed.
+            ACTION_SCREEN_OFF cannot be declared in the manifest on Android 8+,
+            so ScreenLockReceiver is now registered dynamically from
+            AlamalApp.onCreate() instead. This eliminates the previous
+            START_STICKY service that the OS was killing after a few seconds,
+            which silently broke screen-off locking.
+        -->
     </application>
 
 </manifest>

@@ -69,9 +69,16 @@ class AppRepository private constructor(context: Context) {
     )
     val dataChanged: SharedFlow<Unit> = _dataChanged.asSharedFlow()
 
+    // Buffer increased from 1 to 8.
+    //
+    // The old value meant that if the user deleted two records in rapid
+    // succession (before the first Snackbar appeared), the second
+    // UndoAction was silently dropped by DROP_OLDEST and the second
+    // deletion became unrecoverable. 8 is more than enough for the pace
+    // of manual deletion.
     private val _pendingUndo = MutableSharedFlow<UndoAction>(
         replay = 0,
-        extraBufferCapacity = 1,
+        extraBufferCapacity = 8,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
     val pendingUndo: SharedFlow<UndoAction> = _pendingUndo.asSharedFlow()

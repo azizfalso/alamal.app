@@ -50,14 +50,16 @@ fun DateTimeWheelDialog(
     var hour by remember { mutableIntStateOf(cal.get(Calendar.HOUR_OF_DAY)) }
     var minute by remember { mutableIntStateOf(cal.get(Calendar.MINUTE)) }
 
-    val yearList = remember(baseYear) { (baseYear - 5..baseYear + 1).toList() }
+    // Year range widened from (baseYear - 5 .. baseYear + 1) to
+    // (baseYear - 10 .. baseYear + 1) so users can back-date shifts that
+    // happened further in the past without being blocked by the picker.
+    val yearList = remember(baseYear) { (baseYear - 10..baseYear + 1).toList() }
     val monthList = remember { (1..12).toList() }
     val daysInMonth = remember(year, month) { computeDaysInMonth(year, month) }
     val dayList = remember(daysInMonth) { (1..daysInMonth).toList() }
     val hourList = remember { (0..23).toList() }
     val minuteList = remember { (0..59).toList() }
 
-    // Clamp day if month/year changed
     LaunchedEffect(year, month) {
         if (day > daysInMonth) day = daysInMonth
     }
@@ -85,7 +87,6 @@ fun DateTimeWheelDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // Live preview
                 Text(
                     text = DateFormatters.dateTime(previewMs),
                     style = MaterialTheme.typography.titleMedium,
@@ -93,7 +94,6 @@ fun DateTimeWheelDialog(
                     color = MaterialTheme.colorScheme.primary,
                 )
 
-                // Quick shortcuts
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -114,7 +114,6 @@ fun DateTimeWheelDialog(
                     )
                 }
 
-                // Date wheels row (day | month | year)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -151,7 +150,6 @@ fun DateTimeWheelDialog(
 
                 Spacer(Modifier.height(2.dp))
 
-                // Time wheels row (hour | minute)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),

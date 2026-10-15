@@ -5,6 +5,7 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
@@ -20,25 +21,43 @@ import com.alamal.app.R
  *   Arabic-first sans with a full weight axis (200-1000) — perfect for
  *   UI headings, body text, tables, and numbers.
  *
+ * Variable-font weights:
+ *   The .ttf we ship is the variable version (one file, multiple weights).
+ *   Android does NOT automatically pick the right instance from
+ *   `Font(weight = ...)` alone, so we explicitly request each weight via
+ *   FontVariation.Settings. This is the same mechanism the system uses
+ *   for variable fonts since API 26 (minSdk here is 32, so it's safe).
+ *
  * Why the LineHeightStyle / includeFontPadding changes?
  *   Android adds implicit padding around every glyph based on Latin
  *   font metrics. With Arabic this creates a "text floating on a white
- *   page" effect: too much space above/below each line, and vertical
- *   rhythm breaks down. Disabling that padding + centering the line
- *   height gives text that hugs its container correctly and reads as
- *   part of the surface, not as ink stamped on paper.
+ *   page" effect: too much space above/below each line. Disabling that
+ *   padding + centering the line height gives text that hugs its
+ *   container correctly.
  */
 val Cairo = FontFamily(
-    Font(R.font.cairo, weight = FontWeight.Normal),
-    Font(R.font.cairo, weight = FontWeight.Medium),
-    Font(R.font.cairo, weight = FontWeight.SemiBold),
-    Font(R.font.cairo, weight = FontWeight.Bold),
+    Font(
+        resId = R.font.cairo,
+        weight = FontWeight.Normal,
+        variationSettings = FontVariation.Settings(FontVariation.weight(400)),
+    ),
+    Font(
+        resId = R.font.cairo,
+        weight = FontWeight.Medium,
+        variationSettings = FontVariation.Settings(FontVariation.weight(500)),
+    ),
+    Font(
+        resId = R.font.cairo,
+        weight = FontWeight.SemiBold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(600)),
+    ),
+    Font(
+        resId = R.font.cairo,
+        weight = FontWeight.Bold,
+        variationSettings = FontVariation.Settings(FontVariation.weight(700)),
+    ),
 )
 
-// Suppress: includeFontPadding is deprecated in Compose 1.7+ in favor of
-// LineHeightStyle.Trim, but keeping both gives the tightest, most
-// consistent result with Arabic text. Remove the field only if you
-// fully switch to Trim.Both and verify no clipping on ال التعريف.
 @Suppress("DEPRECATION")
 private val NoFontPadding = PlatformTextStyle(includeFontPadding = false)
 
@@ -46,19 +65,13 @@ private val NoFontPadding = PlatformTextStyle(includeFontPadding = false)
  * Center the text inside the line box and trim the extra leading that
  * Arabic glyphs inherit from Latin metrics. If you ever notice clipping
  * on letters like ج، ح، خ، ع، غ (their descenders), change `trim` to
- * LineHeightStyle.Trim.None — you'll lose a bit of tightness but gain
- * safe rendering for very tall glyphs.
+ * LineHeightStyle.Trim.None.
  */
 private val ArabicLineHeight = LineHeightStyle(
     alignment = LineHeightStyle.Alignment.Center,
     trim = LineHeightStyle.Trim.Both,
 )
 
-/**
- * Helper: builds an Arabic-friendly TextStyle.
- * `size` and `line` are in sp. For Arabic, line ≈ size * 1.5 for headings
- * and ≈ size * 1.6 for body/label text.
- */
 private fun arabic(
     size: Int,
     line: Int,
@@ -74,9 +87,8 @@ private fun arabic(
 
 /**
  * Sizes are tuned for Arabic: slightly larger than the previous Roboto
- * values (user request: "خط أكبر قليلًا") and paired with line heights
- * that respect Arabic's taller vertical extent while staying visually
- * compact (user request: "متزاحم بعض الشيء").
+ * values and paired with line heights that respect Arabic's taller
+ * vertical extent while staying visually compact.
  */
 val AlamalTypography = Typography(
     displayLarge = arabic(48, 58, FontWeight.Medium),

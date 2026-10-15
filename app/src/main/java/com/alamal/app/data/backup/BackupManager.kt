@@ -8,6 +8,9 @@ import android.os.Environment
 import android.provider.MediaStore
 import androidx.documentfile.provider.DocumentFile
 import com.alamal.app.data.db.AppDatabase
+import com.alamal.app.data.prefs.SettingsRepository
+import com.alamal.app.data.prefs.ThemeMode
+import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -32,12 +35,32 @@ class BackupManager(private val context: Context) {
         val remotes = db.remoteWorkDao().getAllForBackup()
         val credits = db.creditDao().getAllForBackup()
         val periods = db.periodDao().getAll()
+
+        // Save user preferences with the backup, but deliberately EXCLUDE:
+        //   - pin:                 security-sensitive, never leaves the device
+        //   - backupEncrypted:     whether encryption is on; restored blindly
+        //                          could confuse the user, and the password
+        //                          is not part of the backup anyway
+        //   - backupTreeUri:       path-specific, meaningless on another device
+        //   - lastNotifiedDayId:   internal state, not a user preference
+        val settings = SettingsRepository(context).settings.first()
+        val settingsMap = mapOf(
+            "themeMode" to settings.themeMode.key,
+            "appColorHex" to settings.appColorHex,
+            "currency" to settings.currency,
+            "hourlyRate" to settings.hourlyRate.toString(),
+            "notificationsEnabled" to settings.notificationsEnabled.toString(),
+            "longShiftHours" to settings.longShiftHours.toString(),
+            "autoBackupEnabled" to settings.autoBackupEnabled.toString(),
+        )
+
         return BackupPayload(
             workDays = workDays,
             breaks = allBreaks,
             remoteWorks = remotes,
             credits = credits,
             periods = periods,
+            settingsMap = settingsMap,
         )
     }
 
@@ -145,104 +168,3 @@ class BackupManager(private val context: Context) {
     private fun writeToSaf(treeUri: Uri, fileName: String, bytes: ByteArray): WriteResult {
         val dir = DocumentFile.fromTreeUri(context, treeUri)
             ?: return WriteResult.Failure("مجلد SAF غير متاح")
-        if (!dir.canWrite()) {
-            return WriteResult.Failure("لا توجد صلاحية كتابة في المجلد المختار")
-        }
-
-        dir.findFile(fileName)?.delete()
-
-        val file = dir.createFile(mimeType(fileName), fileName)
-            ?: return WriteResult.Failure("تعذّر إنشاء الملف في المجلد المختار")
-
-        try {
-            context.contentResolver.openOutputStream(file.uri)?.use { os -> os.write(bytes) }
-                ?: return WriteResult.Failure("تعذّر فتح الملف في مجلد SAF")
-        } catch (t: Throwable) {
-            return WriteResult.Failure("فشل الكتابة إلى SAF: ${t.message}")
-        }
-
-        return WriteResult.Success(uri = file.uri, displayName = fileName, sizeBytes = bytes.size)
-    }
-
-    private fun mimeType(fileName: String): String =
-        if (fileName.endsWith(".enc")) "application/octet-stream" else "application/json"
-
-    sealed class RestoreResult {
-        data class Success(val payload: BackupPayload) : RestoreResult()
-        data class Failure(val message: String) : RestoreResult()
-    }
-
-    fun readBackup(uri: Uri, password: String?): RestoreResult {
-        val bytes: ByteArray = try {
-            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                ?: return RestoreResult.Failure("تعذّر فتح الملف")
-        } catch (t: Throwable) {
-            return RestoreResult.Failure("تعذّر قراءة الملف: ${t.message}")
-        }
-
-        val plain = if (CryptoHelper.isEncrypted(bytes)) {
-            if (password.isNullOrEmpty()) {
-                return RestoreResult.Failure("هذا الملف مشفَّر. أدخل كلمة المرور.")
-            }
-            try {
-                CryptoHelper.decrypt(bytes, password)
-            } catch (t: Throwable) {
-                return RestoreResult.Failure("فشل فك التشفير (كلمة مرور خاطئة أو ملف تالف)")
-            }
-        } else bytes
-
-        return try {
-            RestoreResult.Success(deserialize(plain))
-        } catch (t: Throwable) {
-            RestoreResult.Failure("الملف ليس نسخة احتياطية صالحة: ${t.message}")
-        }
-    }
-
-    suspend fun restoreIntoDatabase(payload: BackupPayload): RestoreResult {
-        return try {
-            db.clearAllTables()
-
-            payload.periods.forEach { p -> db.periodDao().insert(p) }
-            payload.workDays.forEach { d -> db.workDayDao().insert(d) }
-            payload.breaks.forEach { b -> db.breakDao().insert(b) }
-            payload.remoteWorks.forEach { r -> db.remoteWorkDao().insert(r) }
-            payload.credits.forEach { c -> db.creditDao().insert(c) }
-
-            RestoreResult.Success(payload)
-        } catch (t: Throwable) {
-            RestoreResult.Failure("فشل الاستعادة: ${t.message}")
-        }
-    }
-
-    fun findAutoBackup(safTreeUri: Uri?): Uri? {
-        if (safTreeUri != null) {
-            val dir = DocumentFile.fromTreeUri(context, safTreeUri) ?: return null
-            dir.findFile("alamal_auto.enc")?.let { return it.uri }
-            dir.findFile("alamal_auto.json")?.let { return it.uri }
-            return null
-        }
-        val names = listOf("alamal_auto.enc", "alamal_auto.json")
-        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        } else {
-            MediaStore.Files.getContentUri("external")
-        }
-        for (name in names) {
-            val projection = arrayOf(MediaStore.Downloads._ID, MediaStore.Downloads.DISPLAY_NAME)
-            val selection = "${MediaStore.Downloads.DISPLAY_NAME} = ?"
-            try {
-                context.contentResolver.query(
-                    collection, projection, selection, arrayOf(name), null
-                )?.use { c ->
-                    if (c.moveToFirst()) {
-                        val id = c.getLong(0)
-                        return Uri.withAppendedPath(collection, id.toString())
-                    }
-                }
-            } catch (_: Throwable) {
-                // Try next name.
-            }
-        }
-        return null
-    }
-}

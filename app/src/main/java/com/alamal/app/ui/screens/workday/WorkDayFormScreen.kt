@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -84,7 +85,16 @@ fun WorkDayFormScreen(
     var loaded by remember { mutableStateOf(false) }
     var currentDayId by remember { mutableStateOf(if (dayId > 0L) dayId else 0L) }
     var clockInMs by remember { mutableStateOf<Long?>(null) }
+
+    // IMPORTANT — null now means "still open", not "now".
+    // Previously this was set to `now` when the work day was open, which
+    // meant that simply opening "edit details" to add a break would
+    // silently close the running shift. Now:
+    //   - For a closed day, we load its real clockOut value.
+    //   - For an open day, we keep clockOutMs = null so the shift stays open.
+    //   - The user can explicitly clear an existing clockOut via the X button.
     var clockOutMs by remember { mutableStateOf<Long?>(null) }
+
     var noteText by remember { mutableStateOf("") }
     var effectiveRate by remember { mutableStateOf(settings.hourlyRate) }
     val breaks = remember { mutableStateListOf<BreakDraft>() }
@@ -103,7 +113,7 @@ fun WorkDayFormScreen(
             if (day != null) {
                 currentDayId = day.id
                 clockInMs = day.clockIn
-                clockOutMs = day.clockOut ?: now
+                clockOutMs = day.clockOut  // May be null for an open shift.
                 noteText = day.note.orEmpty()
                 effectiveRate = day.hourlyRate
                 breaks.clear()
@@ -169,7 +179,17 @@ fun WorkDayFormScreen(
                     label = "وقت الخروج",
                     ms = clockOutMs,
                     onClick = { editingClockOut = true },
+                    onClear = if (clockOutMs != null) {
+                        { clockOutMs = null }
+                    } else null,
                 )
+                if (clockOutMs == null) {
+                    Text(
+                        text = "الوردية لا تزال مفتوحة — لم يُسجَّل خروج بعد.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalExtendedColors.current.muted,
+                    )
+                }
             }
 
             AlamalCard {
@@ -401,6 +421,7 @@ private fun DateTimeRow(
     label: String,
     ms: Long?,
     onClick: () -> Unit,
+    onClear: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -417,7 +438,7 @@ private fun DateTimeRow(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = if (ms == null) "اضغط لتعيين الوقت" else DateFormatters.dateTime(ms),
+                text = if (ms == null) "غير محدد" else DateFormatters.dateTime(ms),
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (ms == null)
                     LocalExtendedColors.current.meta
@@ -425,6 +446,15 @@ private fun DateTimeRow(
                     MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium,
             )
+        }
+        if (onClear != null) {
+            IconButton(onClick = onClear) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "مسح الوقت",
+                    tint = LocalExtendedColors.current.meta,
+                )
+            }
         }
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
