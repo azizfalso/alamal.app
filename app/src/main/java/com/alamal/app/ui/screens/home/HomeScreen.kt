@@ -55,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alamal.app.data.db.entity.WorkDayEntity
 import com.alamal.app.ui.components.AlamalCard
+import com.alamal.app.ui.components.AlamalDivider
+import com.alamal.app.ui.components.AlamalStatRow
 import com.alamal.app.ui.components.SummaryShareDialog
 import com.alamal.app.ui.components.dashedBorder
 import com.alamal.app.ui.theme.LocalExtendedColors
@@ -152,6 +154,19 @@ fun HomeScreen(
                 )
             }
 
+            // ---- Quick stats card ----
+            // Fills the previously empty area below the payment button.
+            // Only appears once at least one work day has been recorded.
+            if (state.totalDaysCount > 0) {
+                QuickStatsCard(
+                    daysCount = state.totalDaysCount,
+                    completedDays = state.workDaysCount,
+                    totalMinutes = state.totalMinutes,
+                    totalWages = state.totalWages,
+                    currency = state.currency,
+                )
+            }
+
             Spacer(Modifier.height(4.dp))
         }
 
@@ -181,6 +196,49 @@ fun HomeScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun QuickStatsCard(
+    daysCount: Int,
+    completedDays: Int,
+    totalMinutes: Long,
+    totalWages: Double,
+    currency: String,
+    modifier: Modifier = Modifier,
+) {
+    val avgPerDay = if (completedDays > 0) totalWages / completedDays else 0.0
+    val avgPerHour = if (totalMinutes > 0) totalWages / (totalMinutes / 60.0) else 0.0
+
+    AlamalCard(modifier = modifier) {
+        Text(
+            text = "ملخص سريع",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
+        )
+        AlamalDivider()
+        AlamalStatRow(
+            label = "أيام مسجّلة",
+            value = ArabicPlural.days(daysCount.toLong()),
+        )
+        AlamalStatRow(
+            label = "الساعات",
+            value = ArabicPlural.hoursMinutes(totalMinutes),
+        )
+        if (avgPerDay > 0.0001) {
+            AlamalStatRow(
+                label = "متوسط اليوم",
+                value = MoneyFormat.format(avgPerDay, currency),
+            )
+        }
+        if (avgPerHour > 0.0001) {
+            AlamalStatRow(
+                label = "متوسط الساعة",
+                value = MoneyFormat.format(avgPerHour, currency),
+            )
+        }
     }
 }
 
@@ -259,14 +317,6 @@ private fun HomeActionItem(
     }
 }
 
-/**
- * Unified card: one big number (net balance) + 3 split cells below.
- *
- * Previously the whole card was painted with the accent color, which made
- * the page look heavy and buried the number. Now the card is a normal
- * surface (ivory) and only the number itself carries the accent color —
- * the number is the hero, the card is just its frame.
- */
 @Composable
 private fun UnifiedSummaryCard(
     net: Double,
@@ -386,6 +436,7 @@ private fun SplitCell(
             style = MaterialTheme.typography.titleSmall,
             color = valueColor,
             fontWeight = FontWeight.Medium,
+            maxLines = 1,
         )
     }
 }

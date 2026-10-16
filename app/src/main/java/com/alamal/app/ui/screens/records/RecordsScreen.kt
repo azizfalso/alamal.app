@@ -2,7 +2,6 @@ package com.alamal.app.ui.screens.records
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -42,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alamal.app.ui.components.AlamalCard
@@ -75,7 +74,6 @@ fun RecordsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 96.dp),
             ) {
-                // ---- Header ----
                 item {
                     Text(
                         text = "السجلات",
@@ -85,7 +83,6 @@ fun RecordsScreen(
                     )
                 }
 
-                // ---- Search bar ----
                 item {
                     OutlinedTextField(
                         value = state.searchQuery,
@@ -115,38 +112,42 @@ fun RecordsScreen(
                     )
                 }
 
-                // ---- Filter chips ----
+                // ---- Filter chips: full-width, evenly distributed ----
+                // Previously the chips were packed to the right with a
+                // horizontal scroll, which left empty space at the end of
+                // the row. Weights fill the row edge to edge.
                 item {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         FilterChip(
                             selected = state.filter == RecordFilter.ALL,
                             onClick = { vm.setFilter(RecordFilter.ALL) },
-                            label = { Text("الكل") },
+                            label = { Text("الكل", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            modifier = Modifier.weight(1f),
                         )
                         FilterChip(
                             selected = state.filter == RecordFilter.WORK,
                             onClick = { vm.setFilter(RecordFilter.WORK) },
-                            label = { Text("عمل") },
+                            label = { Text("عمل", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            modifier = Modifier.weight(1f),
                         )
                         FilterChip(
                             selected = state.filter == RecordFilter.REMOTE,
                             onClick = { vm.setFilter(RecordFilter.REMOTE) },
-                            label = { Text("عن بُعد") },
+                            label = { Text("عن بُعد", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            modifier = Modifier.weight(1f),
                         )
                         FilterChip(
                             selected = state.filter == RecordFilter.CREDIT,
                             onClick = { vm.setFilter(RecordFilter.CREDIT) },
-                            label = { Text("كريدي") },
+                            label = { Text("كريدي", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
 
-                // ---- Empty state (no results after filtering) ----
                 if (state.weeks.isEmpty()) {
                     item {
                         Column(
@@ -176,7 +177,6 @@ fun RecordsScreen(
                     }
                 }
 
-                // ---- Results count ----
                 if (state.weeks.isNotEmpty() &&
                     (state.searchQuery.isNotEmpty() || state.filter != RecordFilter.ALL)
                 ) {
@@ -190,7 +190,6 @@ fun RecordsScreen(
                     }
                 }
 
-                // ---- Weeks ----
                 items(state.weeks, key = { it.weekStart }) { week ->
                     WeekBlock(
                         week = week,
@@ -217,7 +216,7 @@ private fun WeekBlock(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -225,7 +224,9 @@ private fun WeekBlock(
                 text = DateFormatters.weekLabel(week.weekStart, week.weekEnd),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f, fill = false),
             )
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = MoneyFormat.formatSigned(week.weekNet, currency),
                 style = MaterialTheme.typography.titleMedium,
@@ -278,12 +279,12 @@ private fun RecordRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(42.dp)
+                .size(40.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center,
@@ -291,26 +292,30 @@ private fun RecordRow(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(20.dp),
                 tint = if (isCredit)
                     MaterialTheme.colorScheme.error
                 else
                     LocalExtendedColors.current.accent,
             )
         }
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = item.subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = LocalExtendedColors.current.muted,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
             if (!item.note.isNullOrBlank()) {
                 Spacer(Modifier.height(2.dp))
@@ -318,14 +323,17 @@ private fun RecordRow(
                     text = item.note,
                     style = MaterialTheme.typography.bodySmall,
                     color = LocalExtendedColors.current.meta,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(8.dp))
         Text(
             text = amountText,
             style = MaterialTheme.typography.titleMedium,
             color = amountColor,
+            maxLines = 1,
         )
     }
 }

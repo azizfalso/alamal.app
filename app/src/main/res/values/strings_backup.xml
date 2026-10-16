@@ -48,8 +48,12 @@
     <string name="backup_default_folder">المكان الافتراضي: Documents/Alamal</string>
     <string name="backup_chosen_folder">المجلد المختار: %1$s</string>
     <string name="backup_new_now">نسخة احتياطية جديدة الآن</string>
-    <string name="backup_from_auto">من التلقائية</string>
-    <string name="backup_from_file">من ملف</string>
+
+    <!-- Restore buttons — full "استعادة" wording, stacked vertically
+         so the text fits on a phone screen. -->
+    <string name="backup_restore_from_auto">استعادة من التلقائية</string>
+    <string name="backup_restore_from_file">استعادة من ملف</string>
+
     <string name="backup_restore_note">الاستعادة تُلغي كل البيانات الحالية وتستبدلها بمحتوى النسخة. لا تشارك كلمة مرور التشفير مع أحد.</string>
 
     <!-- ============ Toasts and quick messages ============ -->

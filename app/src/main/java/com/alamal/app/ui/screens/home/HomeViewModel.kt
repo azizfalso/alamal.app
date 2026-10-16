@@ -27,6 +27,9 @@ data class HomeUiState(
     val netBalance: Double = 0.0,
     val totalMinutes: Long = 0L,
     val workDaysCount: Int = 0,
+    // Number of work days in the current period, including any open
+    // shift. Used by the "quick stats" card on the home screen.
+    val totalDaysCount: Int = 0,
     val openWorkDay: WorkDayEntity? = null,
     val currency: String = "DH",
     val hourlyRate: Double = 10.0,
@@ -91,6 +94,7 @@ class HomeViewModel(
             netBalance = net,
             totalMinutes = totalMinutes,
             workDaysCount = raw.workDays.count { it.clockOut != null },
+            totalDaysCount = raw.workDays.size,
             openWorkDay = raw.workDays.firstOrNull { it.clockOut == null },
             currency = settings.currency,
             hourlyRate = settings.hourlyRate,
