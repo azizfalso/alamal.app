@@ -27,9 +27,13 @@ data class HomeUiState(
     val netBalance: Double = 0.0,
     val totalMinutes: Long = 0L,
     val workDaysCount: Int = 0,
-    // Number of work days in the current period, including any open
-    // shift. Used by the "quick stats" card on the home screen.
     val totalDaysCount: Int = 0,
+    // Average minutes per work day in the current period.
+    // Used in the "period summary" tiles. It divides totalMinutes by
+    // totalDaysCount (all days, including the currently open one), and
+    // stays 0 when there is no day to average.
+    val avgDailyMinutes: Long = 0L,
+    val avgDailyWage: Double = 0.0,
     val openWorkDay: WorkDayEntity? = null,
     val currency: String = "DH",
     val hourlyRate: Double = 10.0,
@@ -85,6 +89,10 @@ class HomeViewModel(
             totalCredits = totalCredits,
         )
 
+        val days = raw.workDays.size
+        val avgDailyMin = if (days > 0) totalMinutes / days else 0L
+        val avgDailyWage = if (days > 0) totalWages / days else 0.0
+
         HomeUiState(
             loading = false,
             carriedBalance = carried,
@@ -94,7 +102,9 @@ class HomeViewModel(
             netBalance = net,
             totalMinutes = totalMinutes,
             workDaysCount = raw.workDays.count { it.clockOut != null },
-            totalDaysCount = raw.workDays.size,
+            totalDaysCount = days,
+            avgDailyMinutes = avgDailyMin,
+            avgDailyWage = avgDailyWage,
             openWorkDay = raw.workDays.firstOrNull { it.clockOut == null },
             currency = settings.currency,
             hourlyRate = settings.hourlyRate,
@@ -112,7 +122,6 @@ class HomeViewModel(
         }
     }
 
-    /** Quick clock-out: stop the running work session immediately. */
     fun clockOutNow() {
         viewModelScope.launch {
             val open = repo.getOpenWorkDay() ?: return@launch
@@ -120,10 +129,6 @@ class HomeViewModel(
         }
     }
 
-    /**
-     * Cancel the currently open clock-in entirely.
-     * Removes the work day (with any breaks) and shows an undo snackbar.
-     */
     fun cancelClockIn() {
         viewModelScope.launch {
             val open = repo.getOpenWorkDay() ?: return@launch

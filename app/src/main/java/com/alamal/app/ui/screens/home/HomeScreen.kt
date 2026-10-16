@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,15 +49,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alamal.app.data.db.entity.WorkDayEntity
 import com.alamal.app.ui.components.AlamalCard
 import com.alamal.app.ui.components.AlamalDivider
-import com.alamal.app.ui.components.AlamalStatRow
 import com.alamal.app.ui.components.SummaryShareDialog
-import com.alamal.app.ui.components.dashedBorder
 import com.alamal.app.ui.theme.LocalExtendedColors
 import com.alamal.app.util.ArabicPlural
 import com.alamal.app.util.DateFormatters
@@ -89,13 +85,31 @@ fun HomeScreen(
                 .padding(bottom = 84.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = "الفترة الحالية",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 2.dp),
-            )
+            // ---- Header with secondary actions ----
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "الفترة الحالية",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Medium,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    HeaderIconButton(
+                        icon = Icons.Default.Share,
+                        contentDescription = "مشاركة الملخص",
+                        onClick = { showShareDialog = true },
+                    )
+                    HeaderIconButton(
+                        icon = Icons.Default.Insights,
+                        contentDescription = "الإحصائيات",
+                        onClick = onOpenStats,
+                    )
+                }
+            }
 
             UnifiedSummaryCard(
                 net = state.netBalance,
@@ -117,52 +131,33 @@ fun HomeScreen(
                 ClockInCard(onClockIn = { vm.clockIn() })
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                CompactActionButton(
-                    icon = Icons.Default.Share,
-                    label = "مشاركة الملخص",
-                    onClick = { showShareDialog = true },
-                    modifier = Modifier.weight(1f),
-                )
-                CompactActionButton(
-                    icon = Icons.Default.Insights,
-                    label = "الإحصائيات",
-                    onClick = onOpenStats,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            Button(
+            // ---- Payment button (outline — intentionally subdued) ----
+            OutlinedButton(
                 onClick = onOpenPayment,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp),
             ) {
                 Icon(
                     Icons.Default.CheckCircle,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(18.dp),
                 )
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
                     text = "استلمت الدفعة",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.labelLarge,
                 )
             }
 
-            // ---- Quick stats card ----
-            // Fills the previously empty area below the payment button.
-            // Only appears once at least one work day has been recorded.
+            // ---- Period summary: 2x2 tiles ----
             if (state.totalDaysCount > 0) {
-                QuickStatsCard(
+                PeriodSummaryCard(
                     daysCount = state.totalDaysCount,
-                    completedDays = state.workDaysCount,
                     totalMinutes = state.totalMinutes,
-                    totalWages = state.totalWages,
+                    avgDailyMinutes = state.avgDailyMinutes,
+                    avgDailyWage = state.avgDailyWage,
                     currency = state.currency,
                 )
             }
@@ -200,43 +195,108 @@ fun HomeScreen(
 }
 
 @Composable
-private fun QuickStatsCard(
+private fun HeaderIconButton(
+    icon: ImageVector,
+    contentDescription: String?,
+    onClick: () -> Unit,
+) {
+    val border = LocalExtendedColors.current.border
+    val accent = LocalExtendedColors.current.accent
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(1.dp, border, RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = accent,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+@Composable
+private fun PeriodSummaryCard(
     daysCount: Int,
-    completedDays: Int,
     totalMinutes: Long,
-    totalWages: Double,
+    avgDailyMinutes: Long,
+    avgDailyWage: Double,
     currency: String,
     modifier: Modifier = Modifier,
 ) {
-    val avgPerDay = if (completedDays > 0) totalWages / completedDays else 0.0
-    val avgPerHour = if (totalMinutes > 0) totalWages / (totalMinutes / 60.0) else 0.0
-
     AlamalCard(modifier = modifier) {
         Text(
-            text = "ملخص سريع",
+            text = "ملخص الفترة",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium,
         )
         AlamalDivider()
-        AlamalStatRow(
-            label = "أيام مسجّلة",
-            value = ArabicPlural.days(daysCount.toLong()),
-        )
-        AlamalStatRow(
-            label = "الساعات",
-            value = ArabicPlural.hoursMinutes(totalMinutes),
-        )
-        if (avgPerDay > 0.0001) {
-            AlamalStatRow(
-                label = "متوسط اليوم",
-                value = MoneyFormat.format(avgPerDay, currency),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StatTile(
+                value = ArabicPlural.days(daysCount.toLong()),
+                label = "أيام العمل",
+                modifier = Modifier.weight(1f),
+            )
+            StatTile(
+                value = ArabicPlural.hoursMinutes(totalMinutes),
+                label = "الساعات",
+                modifier = Modifier.weight(1f),
             )
         }
-        if (avgPerHour > 0.0001) {
-            AlamalStatRow(
-                label = "متوسط الساعة",
-                value = MoneyFormat.format(avgPerHour, currency),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StatTile(
+                value = MoneyFormat.format(avgDailyWage, currency),
+                label = "متوسط اليوم",
+                modifier = Modifier.weight(1f),
+            )
+            StatTile(
+                value = ArabicPlural.hoursMinutes(avgDailyMinutes),
+                label = "متوسط الساعات",
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatTile(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(vertical = 10.dp, horizontal = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = LocalExtendedColors.current.muted,
+                maxLines = 1,
             )
         }
     }
@@ -294,6 +354,7 @@ private fun HomeActionItem(
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
+    val onSurface = MaterialTheme.colorScheme.onSurface
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
@@ -312,7 +373,7 @@ private fun HomeActionItem(
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = onSurface,
         )
     }
 }
@@ -451,9 +512,18 @@ private fun VerticalDividerLine(color: Color) {
     )
 }
 
+/**
+ * Clock-in hero card.
+ *
+ * Previously a solid gold fill — too loud and, on the dark theme, it
+ * dominated everything around it. Now it uses a soft warm surface from
+ * ExtendedColors (AccentSurface*), plus a border that keeps it visually
+ * distinct from ordinary cards.
+ */
 @Composable
 private fun ClockInCard(onClockIn: () -> Unit) {
-    val border = LocalExtendedColors.current.borderStrong
+    val surface = LocalExtendedColors.current.accentSurface
+    val borderColor = LocalExtendedColors.current.accentSurfaceBorder
     val accent = LocalExtendedColors.current.accent
     val shape = RoundedCornerShape(16.dp)
 
@@ -461,30 +531,17 @@ private fun ClockInCard(onClockIn: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .dashedBorder(color = border, cornerRadius = 16.dp)
+            .background(surface)
+            .border(1.dp, borderColor, shape)
             .clickable { onClockIn() }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "تسجيل دخول العمل",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = "اضغط لتسجيل وقت العمل الآن",
-                style = MaterialTheme.typography.bodySmall,
-                color = LocalExtendedColors.current.muted,
-            )
-        }
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(42.dp)
                 .clip(CircleShape)
-                .background(accent.copy(alpha = 0.12f)),
+                .background(accent.copy(alpha = 0.18f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -494,9 +551,30 @@ private fun ClockInCard(onClockIn: () -> Unit) {
                 modifier = Modifier.size(22.dp),
             )
         }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "تسجيل دخول العمل",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "اضغط لتسجيل وقت العمل الآن",
+                style = MaterialTheme.typography.bodySmall,
+                color = LocalExtendedColors.current.muted,
+            )
+        }
     }
 }
 
+/**
+ * At-work card.
+ *
+ * Previously a saturated #17A34A. Now a calm olive surface so it reads
+ * as a calm status indicator instead of a flashing alert.
+ */
 @Composable
 private fun AtWorkCard(
     day: WorkDayEntity,
@@ -512,48 +590,63 @@ private fun AtWorkCard(
         }
     }
     val elapsedMin = ((now - day.clockIn).coerceAtLeast(0L)) / 60_000L
-    val success = LocalExtendedColors.current.success
 
-    AlamalCard {
+    val surface = LocalExtendedColors.current.workingSurface
+    val borderColor = LocalExtendedColors.current.workingBorder
+    val bigText = LocalExtendedColors.current.workingText
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val muted = LocalExtendedColors.current.muted
+    val shape = RoundedCornerShape(16.dp)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(surface)
+            .border(1.dp, borderColor, shape)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(success),
+                    .background(borderColor),
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = "أنت الآن في العمل",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = onSurface,
                 fontWeight = FontWeight.Medium,
             )
         }
+        Spacer(Modifier.height(2.dp))
         Text(
             text = "بدأت في ${DateFormatters.time(day.clockIn)}",
             style = MaterialTheme.typography.bodySmall,
-            color = LocalExtendedColors.current.muted,
+            color = muted,
         )
         Text(
             text = "منذ ${ArabicPlural.hoursMinutes(elapsedMin)}",
             style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = bigText,
             fontWeight = FontWeight.Medium,
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(8.dp))
         Button(
             onClick = onQuickStop,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(14.dp),
+                .height(46.dp),
+            shape = RoundedCornerShape(12.dp),
         ) {
             Text(
                 text = "إنهاء العمل الآن",
                 fontWeight = FontWeight.Medium,
             )
         }
+        Spacer(Modifier.height(6.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -562,7 +655,7 @@ private fun AtWorkCard(
                 onClick = onEditDetails,
                 modifier = Modifier
                     .weight(1f)
-                    .height(42.dp),
+                    .height(40.dp),
                 shape = RoundedCornerShape(12.dp),
             ) {
                 Text(
@@ -574,7 +667,7 @@ private fun AtWorkCard(
                 onClick = onCancelClockIn,
                 modifier = Modifier
                     .weight(1f)
-                    .height(42.dp),
+                    .height(40.dp),
                 shape = RoundedCornerShape(12.dp),
             ) {
                 Icon(
@@ -590,39 +683,6 @@ private fun AtWorkCard(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun CompactActionButton(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.height(56.dp),
-        shape = RoundedCornerShape(14.dp),
-        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = LocalExtendedColors.current.accent,
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
         }
     }
 }

@@ -5,13 +5,13 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * Extended color roles not present in Material 3 ColorScheme.
- * Exposes Claude-style semantic colors (muted, meta, border, ring, accent).
  *
- * Access with: LocalExtendedColors.current.muted
- *
- * These top-level values are kept as a static fallback. The actual runtime
- * values are built in Theme.kt's `extendedFrom(seed, dark)`, which uses the
- * same tokens defined in Color.kt.
+ * New in this revision:
+ *   - accentSurface / accentSurfaceBorder: for the "clock-in" hero card.
+ *     It used to be a solid gold fill; now it's a soft tinted surface with
+ *     a warm border, so it still stands out but no longer dominates.
+ *   - workingSurface / workingBorder / workingText: for the "at work" card.
+ *     Switched from saturated #17A34A to a calmer olive.
  */
 data class ExtendedColors(
     val muted: Color,
@@ -26,6 +26,12 @@ data class ExtendedColors(
     val onWarmSurface: Color,
     val success: Color,
     val warn: Color,
+    // New surface tokens
+    val accentSurface: Color,
+    val accentSurfaceBorder: Color,
+    val workingSurface: Color,
+    val workingBorder: Color,
+    val workingText: Color,
 )
 
 val LightExtendedColors = ExtendedColors(
@@ -41,6 +47,11 @@ val LightExtendedColors = ExtendedColors(
     onWarmSurface = CharcoalWarm,
     success = SuccessGreen,
     warn = WarnGold,
+    accentSurface = AccentSurfaceLight,
+    accentSurfaceBorder = AccentSurfaceBorderLight,
+    workingSurface = WorkingSurfaceLight,
+    workingBorder = WorkingBorder,
+    workingText = WorkingTextLight,
 )
 
 val DarkExtendedColors = ExtendedColors(
@@ -56,6 +67,11 @@ val DarkExtendedColors = ExtendedColors(
     onWarmSurface = WarmSilver,
     success = SuccessGreen,
     warn = WarnGold,
+    accentSurface = AccentSurfaceDark,
+    accentSurfaceBorder = AccentSurfaceBorderDark,
+    workingSurface = WorkingSurfaceDark,
+    workingBorder = WorkingBorder,
+    workingText = WorkingTextDark,
 )
 
 val LocalExtendedColors = staticCompositionLocalOf { LightExtendedColors }
