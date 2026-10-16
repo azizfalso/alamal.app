@@ -131,7 +131,6 @@ fun HomeScreen(
                 ClockInCard(onClockIn = { vm.clockIn() })
             }
 
-            // ---- Payment button (outline — intentionally subdued) ----
             OutlinedButton(
                 onClick = onOpenPayment,
                 modifier = Modifier
@@ -151,13 +150,19 @@ fun HomeScreen(
                 )
             }
 
-            // ---- Period summary: 2x2 tiles ----
             if (state.totalDaysCount > 0) {
                 PeriodSummaryCard(
                     daysCount = state.totalDaysCount,
                     totalMinutes = state.totalMinutes,
                     avgDailyMinutes = state.avgDailyMinutes,
                     avgDailyWage = state.avgDailyWage,
+                    currency = state.currency,
+                )
+            }
+
+            if (state.recentItems.isNotEmpty()) {
+                RecentRecordsCard(
+                    items = state.recentItems,
                     currency = state.currency,
                 )
             }
@@ -229,6 +234,10 @@ private fun PeriodSummaryCard(
     currency: String,
     modifier: Modifier = Modifier,
 ) {
+    // Only show the averages row when it adds information.
+    // With a single day, average == total, which is redundant.
+    val showAverages = daysCount > 1
+
     AlamalCard(modifier = modifier) {
         Text(
             text = "ملخص الفترة",
@@ -237,6 +246,7 @@ private fun PeriodSummaryCard(
             fontWeight = FontWeight.Medium,
         )
         AlamalDivider()
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -252,20 +262,23 @@ private fun PeriodSummaryCard(
                 modifier = Modifier.weight(1f),
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            StatTile(
-                value = MoneyFormat.format(avgDailyWage, currency),
-                label = "متوسط اليوم",
-                modifier = Modifier.weight(1f),
-            )
-            StatTile(
-                value = ArabicPlural.hoursMinutes(avgDailyMinutes),
-                label = "متوسط الساعات",
-                modifier = Modifier.weight(1f),
-            )
+
+        if (showAverages) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatTile(
+                    value = MoneyFormat.format(avgDailyWage, currency),
+                    label = "متوسط اليوم",
+                    modifier = Modifier.weight(1f),
+                )
+                StatTile(
+                    value = ArabicPlural.hoursMinutes(avgDailyMinutes),
+                    label = "متوسط الساعات",
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
@@ -299,6 +312,113 @@ private fun StatTile(
                 maxLines = 1,
             )
         }
+    }
+}
+
+@Composable
+private fun RecentRecordsCard(
+    items: List<RecentItem>,
+    currency: String,
+    modifier: Modifier = Modifier,
+) {
+    AlamalCard(modifier = modifier) {
+        Text(
+            text = "آخر التسجيلات",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
+        )
+        AlamalDivider()
+        items.forEachIndexed { index, item ->
+            RecentRow(item = item, currency = currency)
+            if (index < items.lastIndex) {
+                AlamalDivider()
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentRow(
+    item: RecentItem,
+    currency: String,
+) {
+    val accent = LocalExtendedColors.current.accent
+    val muted = LocalExtendedColors.current.muted
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val errorColor = MaterialTheme.colorScheme.error
+
+    val icon = when (item.kind) {
+        RecentKind.WORK -> Icons.Default.Schedule
+        RecentKind.REMOTE -> Icons.Default.Laptop
+        RecentKind.CREDIT -> Icons.Default.MoneyOff
+    }
+    val title = when (item.kind) {
+        RecentKind.WORK -> "يوم عمل"
+        RecentKind.REMOTE -> "عن بُعد"
+        RecentKind.CREDIT -> "كريدي"
+    }
+    val iconTint = when (item.kind) {
+        RecentKind.CREDIT -> errorColor
+        else -> accent
+    }
+    val iconBg = when (item.kind) {
+        RecentKind.CREDIT -> errorColor.copy(alpha = 0.12f)
+        else -> accent.copy(alpha = 0.12f)
+    }
+    val amountText = when (item.kind) {
+        RecentKind.CREDIT -> "- " + MoneyFormat.format(item.amount, currency)
+        else -> MoneyFormat.format(item.amount, currency)
+    }
+    val amountColor = when (item.kind) {
+        RecentKind.CREDIT -> errorColor
+        else -> onSurface
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(iconBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = onSurface,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+            )
+            Text(
+                text = DateFormatters.dateArabicShort(item.dateMs),
+                style = MaterialTheme.typography.bodySmall,
+                color = muted,
+                maxLines = 1,
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = amountText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = amountColor,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+        )
     }
 }
 
@@ -378,6 +498,15 @@ private fun HomeActionItem(
     }
 }
 
+/**
+ * Main balance card — centered, big bold number.
+ *
+ * The label "المؤجل" was renamed to "المرحَّل". Reason: "مؤجل" suggests
+ * "postponed / to be paid later", which is misleading. The value is the
+ * carried balance from the previous period (positive = owed to you,
+ * negative = you owe). "المرحَّل" matches the long form already used in
+ * the payment and archive screens ("الرصيد المرحَّل").
+ */
 @Composable
 private fun UnifiedSummaryCard(
     net: Double,
@@ -416,7 +545,7 @@ private fun UnifiedSummaryCard(
             .clip(shape)
             .background(bg)
             .border(1.dp, borderColor, shape)
-            .padding(horizontal = 18.dp, vertical = 14.dp),
+            .padding(horizontal = 18.dp, vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -424,16 +553,16 @@ private fun UnifiedSummaryCard(
             style = MaterialTheme.typography.labelLarge,
             color = muted,
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
             text = formatted,
-            style = MaterialTheme.typography.displaySmall,
+            style = MaterialTheme.typography.displayMedium,
             color = numberColor,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
         )
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(14.dp))
 
         Box(
             modifier = Modifier
@@ -442,7 +571,7 @@ private fun UnifiedSummaryCard(
                 .background(border),
         )
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -450,7 +579,7 @@ private fun UnifiedSummaryCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SplitCell(
-                label = "مؤجل",
+                label = "المرحَّل",
                 value = MoneyFormat.formatSigned(carried, currency),
                 labelColor = muted,
                 valueColor = onSurface,
@@ -512,14 +641,6 @@ private fun VerticalDividerLine(color: Color) {
     )
 }
 
-/**
- * Clock-in hero card.
- *
- * Previously a solid gold fill — too loud and, on the dark theme, it
- * dominated everything around it. Now it uses a soft warm surface from
- * ExtendedColors (AccentSurface*), plus a border that keeps it visually
- * distinct from ordinary cards.
- */
 @Composable
 private fun ClockInCard(onClockIn: () -> Unit) {
     val surface = LocalExtendedColors.current.accentSurface
@@ -569,12 +690,6 @@ private fun ClockInCard(onClockIn: () -> Unit) {
     }
 }
 
-/**
- * At-work card.
- *
- * Previously a saturated #17A34A. Now a calm olive surface so it reads
- * as a calm status indicator instead of a flashing alert.
- */
 @Composable
 private fun AtWorkCard(
     day: WorkDayEntity,

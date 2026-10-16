@@ -18,6 +18,20 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/** Kind of record shown in the "recent records" list on the home screen. */
+enum class RecentKind { WORK, REMOTE, CREDIT }
+
+/**
+ * One entry in the "آخر التسجيلات" mini-list.
+ * Deliberately tiny: only what the row displays, no entity references,
+ * so the UI never holds onto Room objects longer than necessary.
+ */
+data class RecentItem(
+    val kind: RecentKind,
+    val dateMs: Long,
+    val amount: Double,
+)
+
 data class HomeUiState(
     val loading: Boolean = true,
     val carriedBalance: Double = 0.0,
@@ -28,12 +42,9 @@ data class HomeUiState(
     val totalMinutes: Long = 0L,
     val workDaysCount: Int = 0,
     val totalDaysCount: Int = 0,
-    // Average minutes per work day in the current period.
-    // Used in the "period summary" tiles. It divides totalMinutes by
-    // totalDaysCount (all days, including the currently open one), and
-    // stays 0 when there is no day to average.
     val avgDailyMinutes: Long = 0L,
     val avgDailyWage: Double = 0.0,
+    val recentItems: List<RecentItem> = emptyList(),
     val openWorkDay: WorkDayEntity? = null,
     val currency: String = "DH",
     val hourlyRate: Double = 10.0,
@@ -93,6 +104,28 @@ class HomeViewModel(
         val avgDailyMin = if (days > 0) totalMinutes / days else 0L
         val avgDailyWage = if (days > 0) totalWages / days else 0.0
 
+        // Build the "recent records" list from the same three sources and
+        // keep only the three newest. Work days expose clockIn as their
+        // effective date; remote works and credits have a date field.
+        val recent = ArrayList<RecentItem>(
+            raw.workDays.size + raw.remotes.size + raw.credits.size
+        )
+        raw.workDays.forEach { d ->
+            val wage = MoneyCalculator.computeDayStats(
+                day = d,
+                breaks = breaksByDay[d.id].orEmpty(),
+                now = now,
+            ).wage
+            recent += RecentItem(RecentKind.WORK, d.clockIn, wage)
+        }
+        raw.remotes.forEach { r ->
+            recent += RecentItem(RecentKind.REMOTE, r.date, r.amount)
+        }
+        raw.credits.forEach { c ->
+            recent += RecentItem(RecentKind.CREDIT, c.date, c.amount)
+        }
+        val recentTop3 = recent.sortedByDescending { it.dateMs }.take(3)
+
         HomeUiState(
             loading = false,
             carriedBalance = carried,
@@ -105,6 +138,7 @@ class HomeViewModel(
             totalDaysCount = days,
             avgDailyMinutes = avgDailyMin,
             avgDailyWage = avgDailyWage,
+            recentItems = recentTop3,
             openWorkDay = raw.workDays.firstOrNull { it.clockOut == null },
             currency = settings.currency,
             hourlyRate = settings.hourlyRate,
